@@ -14,6 +14,8 @@ object JsonDBman {
     var tag = "JsonDBmanTAGS"
     var dbarrays = "JsonDBman_${tag}_ARRARYS"
     var dblinks = "JsonDBman_${tag}_LINKS"
+    var dbprimarykey = "JsonDBman_${tag}"
+    var dbprimarykeyid = "JsonDBman_${JsonDBman.tag}_ID"
     val connStr by lazy {
         if (dbdriver.isEmpty() || dbprot.isEmpty() || dbip.isEmpty() || dbname.isEmpty() || dbuser.isEmpty() || dbpass.isEmpty()) {
             throw NullPointerException("JsonDBman_init_Empty")

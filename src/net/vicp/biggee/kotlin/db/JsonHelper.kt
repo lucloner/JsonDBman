@@ -1,5 +1,6 @@
 package net.vicp.biggee.kotlin.db
 
+import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import net.vicp.biggee.kotlin.conf.JsonDBman
@@ -23,7 +24,7 @@ object JsonHelper {
         try {
             Class.forName(JsonDBman.dbdriver)
             DriverManager.getConnection(connString).createStatement()
-                .execute("IF NOT EXISTS (SELECT * FROM [sysdatabases] WHERE [name]='$DBName') CREATE DATABASE [$DBName]")
+                .execute("IF NOT EXISTS (SELECT * FROM [sysdatabases] WHERE [name]='$DBName') CREATE DATABASE [$DBName] COLLATE  Chinese_PRC_CS_AS")
             res = true
         } catch (e: Exception) {
             e.printStackTrace()
@@ -63,7 +64,7 @@ object JsonHelper {
         elementName: String,
         jsonElement: JsonElement
     ): List<HashMap<String, HashMap<String, String>>> {
-        System.out.println("praseJsonElement")
+//        System.out.println("praseJsonElement")
         val primaryKey = getPrimaryKey(tableName)
         val primaryKeyName = primaryKey[0]
         val primaryKeyValue = if (tableRow.containsKey(primaryKeyName)) tableRow[primaryKeyName] else primaryKey[1]
@@ -102,8 +103,8 @@ object JsonHelper {
     }
 
     fun getKey(tableName: String, mode: String): Array<String> {
-        val primaryKey = "JsonDBman_${JsonDBman.tag}_${tableName}_$mode"
-        val primaryKeyValue = "JsonDBman_${JsonDBman.tag}_ID_${UUID.randomUUID()}_${System.currentTimeMillis()}"
+        val primaryKey = "${JsonDBman.dbprimarykey}_${tableName}_$mode"
+        val primaryKeyValue = "${JsonDBman.dbprimarykeyid}_ID_${UUID.randomUUID()}_${System.currentTimeMillis()}"
         val keyValue = arrayOf(primaryKey, primaryKeyValue)
         return keyValue
     }
@@ -112,7 +113,7 @@ object JsonHelper {
     fun getLink(tableName: String): Array<String> = getKey(tableName, "LINK")
 
     fun saveJsonToDB(tableName: String, jsonObject: JsonObject) {
-        System.out.println("saveJsonToDB")
+//        System.out.println("saveJsonToDB")
         val missionList = initTable(tableName, jsonObject)
         missionList.iterator().forEach {
             it.iterator().forEach {
@@ -129,7 +130,8 @@ object JsonHelper {
         var cols = ""
         var vals = ""
         var commaStr = ""
-        tableData.keys.iterator().forEach {
+        val keys = tableData.keys.iterator()
+        keys.forEach {
             coldef += "$commaStr[$it] [varchar](max)"
             cols += "$commaStr[$it]"
             vals += "$commaStr'${tableData[it]}'"
@@ -139,23 +141,71 @@ object JsonHelper {
         val insertIntoSQL = "$insertInto$cols) VALUES($vals)"
         System.out.println(insertIntoSQL)
         statement.execute(createTableSQL)
+        fitTable(tableName, keys)
         statement.execute(insertIntoSQL)
     }
 
-    fun loadFromDB(tableName: String) {
-        val jsonObject = JsonObject()
-        val rs = statement.executeQuery("SELECT * FROM [$tableName]")
-        val keyCnt = rs.metaData.columnCount
-        val keys = HashSet<String>().apply {
-            for (index in 1..keyCnt) {
-                add(rs.metaData.getColumnName(index))
+    fun fitTable(tableName: String, collist: Iterator<String>) {
+        val rs =
+            statement.executeQuery("SELECT [COLUMN_NAME] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME]='$tableName'")
+        val newList = HashSet<String>().apply {
+            collist.forEach {
+                add(it)
             }
         }
         while (rs.next()) {
-            keys.iterator().forEach {
-                jsonObject.addProperty(it, rs.getString(it))
-            }
+            newList.remove(rs.getString("COLUMN_NAME"))
         }
+        val sqlTemplate = "ALTER TABLE [$tableName] ADD "
+        var coldef = ""
+        var commaStr = ""
+        newList.iterator().forEach {
+            coldef += "$commaStr[$it] [varchar](max)"
+            commaStr = ","
+        }
+        val sql = "$sqlTemplate$coldef"
+        rs.close()
+        if (newList.isEmpty()) {
+            return
+        }
+        statement.execute(sql)
+    }
+
+    fun getJson(tableName: String, key: String?, value: String): JsonElement {
+        val jsonArray = loadFromDB(tableName, key, value)
+        val jsonElement = if (jsonArray.size() > 1) jsonArray else jsonArray[0].asJsonObject
+        return jsonElement
+    }
+
+    fun loadFromDB(tableName: String, key: String?, value: String): JsonArray {
+        var k = key
+        var v = value
+        if (k == null) {
+            k = "${JsonDBman.dbprimarykey}_${tableName}_ID"
+            v = "${JsonDBman.dbprimarykeyid}_$v"
+        }
+        val jsonArray = JsonArray()
+        val rs = statement.executeQuery("SELECT * FROM [$tableName] WHERE [$k]='$v'")
+        while (rs.next()) {
+            val jsonObject = JsonObject()
+            val keyCnt = rs.metaData.columnCount
+            for (index in 1..keyCnt) {
+                val jsonKey = rs.metaData.getColumnName(index)
+                val jsonValue = rs.getString(index)
+                if (jsonKey.equals("${JsonDBman.dbprimarykey}_${tableName}_ID") || jsonKey.equals(JsonDBman.dblinks)) {
+                    continue
+                }
+                if (jsonKey.startsWith(JsonDBman.dbprimarykey)) {
+                    val subJsonElement = getJson(jsonKey, JsonDBman.dblinks, jsonValue)
+                    jsonObject.add(jsonKey, subJsonElement)
+                } else {
+                    jsonObject.addProperty(jsonKey, jsonValue)
+                }
+            }
+            jsonArray.add(jsonObject)
+        }
+        rs.close()
+        return jsonArray
     }
 
     fun finalize() {
