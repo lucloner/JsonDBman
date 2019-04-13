@@ -42,5 +42,5 @@ class JsonDBman {
 }
 
 fun main(args: Array<String>) {
-    net.vicp.biggee.kotlin.tests.JsonDBman().t4()
+    net.vicp.biggee.kotlin.tests.JsonDBman().t3()
 }

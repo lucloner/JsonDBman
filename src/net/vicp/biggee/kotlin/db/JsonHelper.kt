@@ -87,6 +87,15 @@ object JsonHelper {
         if (jsonElement.isJsonObject) {
             records.addAll(praseJsonObject(elementName, subTableRow, jsonElement.asJsonObject))
         } else if (jsonElement.isJsonArray) {
+            val arrayTableRow = HashMap<String, String>().apply {
+                put(JsonDBman.dbprimarykey, primaryKeyValue)
+                put(JsonDBman.dblinks, subLinkValue)
+                put(JsonDBman.dbarrays, elementName)
+            }
+            val arrayTable = HashMap<String, HashMap<String, String>>().apply {
+                put(JsonDBman.dbarrays, arrayTableRow)
+            }
+            records.add(arrayTable)
             jsonElement.asJsonArray.iterator().forEach {
                 records.addAll(praseJsonElement(tableName, tableRow, elementName, it.asJsonObject))
             }
