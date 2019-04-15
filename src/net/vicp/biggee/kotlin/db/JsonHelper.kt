@@ -5,6 +5,7 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import net.vicp.biggee.kotlin.conf.JsonDBman
 import java.sql.DriverManager
+import java.sql.ResultSet
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
@@ -33,19 +34,30 @@ object JsonHelper {
     }
 
     fun initTable(tableName: String, jsonObject: JsonObject): List<HashMap<String, HashMap<String, String>>> {
-        val primaryKey = getPrimaryKey(tableName)
-        val tableInitData = HashMap<String, String>().apply {
-            put(primaryKey[0], primaryKey[1])
-        }
-        return praseJsonObject(tableName, tableInitData, jsonObject)
+
+        return praseJsonObject(tableName, jsonObject)
     }
+
+    fun getArraryTable(linkID: String): ResultSet =
+        statement.executeQuery("SELECT * FROM [${JsonDBman.dbarrays}] WHERE [${JsonDBman.dblinks}]='$linkID'")
 
     fun praseJsonObject(
         tableName: String,
-        tableRow: HashMap<String, String>,
-        jsonObject: JsonObject
+        jsonObject: JsonObject,
+        link: String? = null
     ): List<HashMap<String, HashMap<String, String>>> {
         System.out.println("praseJsonObject$jsonObject")
+        val primaryKey = getPrimaryKey(tableName)
+        val primaryKeyName = primaryKey.first
+        val primaryKeyValue = primaryKey.second
+
+        val tableRow = HashMap<String, String>().apply {
+            putIfAbsent(primaryKeyName, primaryKeyValue)
+            if (link != null) {
+                System.out.println("praseLink:$link")
+                putIfAbsent(JsonDBman.dblinks, link)
+            }
+        }
         val thisRecord = HashMap<String, HashMap<String, String>>().apply {
             put(tableName, tableRow)
         }
@@ -53,7 +65,7 @@ object JsonHelper {
             add(thisRecord)
         }
         jsonObject.keySet().iterator().forEach {
-            records.addAll(praseJsonElement(tableName, tableRow, it, jsonObject[it]))
+            records.addAll(praseJsonElement(tableName, tableRow, it, jsonObject[it], link))
         }
         return records
     }
@@ -62,43 +74,37 @@ object JsonHelper {
         tableName: String,
         tableRow: HashMap<String, String>,
         elementName: String,
-        jsonElement: JsonElement
+        jsonElement: JsonElement,
+        link: String? = null
     ): List<HashMap<String, HashMap<String, String>>> {
 //        System.out.println("praseJsonElement")
         val primaryKey = getPrimaryKey(tableName)
-        val primaryKeyName = primaryKey[0]
-        val primaryKeyValue = if (tableRow.containsKey(primaryKeyName)) tableRow[primaryKeyName] else primaryKey[1]
-        val primaryLink = getLink(tableName)
-        val primaryLinkName = JsonDBman.dblinks
-        val primaryLinkValue = if (tableRow.containsKey(primaryLinkName)) tableRow[primaryLinkName] else primaryLink[1]
-        val subLink = getLink(elementName)
-        val subLinkName = elementName
-        val subLinkValue = if (tableRow.containsKey(subLinkName)) tableRow[subLinkName] else subLink[1]
-
-        tableRow.putIfAbsent(primaryKeyName, primaryKeyValue!!)
-        tableRow.putIfAbsent(primaryLinkName, primaryLinkValue!!)
-        tableRow.putIfAbsent(subLinkName, subLinkValue!!)
+        val primaryKeyName = primaryKey.first
+        val primaryKeyValue = if (tableRow.containsKey(primaryKeyName)) tableRow[primaryKeyName] else primaryKey.second
+        val primaryKeyPair = Pair(primaryKeyName, primaryKeyValue!!)
+        val primaryLink = getLink(elementName)
+        val primaryLinkName = if (link == null) elementName else JsonDBman.dblinks
+        val primaryLinkValue = if (link == null) primaryLink.second else link
+        val primaryLinkPair = Pair(primaryLinkName, primaryLinkValue)
 
         val records = ArrayList<HashMap<String, HashMap<String, String>>>()
-        val subTableRow = HashMap<String, String>().apply {
-            put(primaryKeyName, primaryKeyValue)
-            put(JsonDBman.dblinks, subLinkValue)
-        }
+
+        tableRow.put(elementName, primaryLinkValue)
+        tableRow.putIfAbsent(primaryKeyPair.first, primaryKeyPair.second)
+        tableRow.putIfAbsent(primaryLinkPair.first, primaryLinkPair.second)
+
         if (jsonElement.isJsonObject) {
-            records.addAll(praseJsonObject(elementName, subTableRow, jsonElement.asJsonObject))
+            records.addAll(praseJsonObject(elementName, jsonElement.asJsonObject, link))
         } else if (jsonElement.isJsonArray) {
-            val arrayTableRow = HashMap<String, String>().apply {
-                put(JsonDBman.dbprimarykey, primaryKeyValue)
-                put(JsonDBman.dblinks, subLinkValue)
-                put(JsonDBman.dbarrays, elementName)
-            }
-            val arrayTable = HashMap<String, HashMap<String, String>>().apply {
-                put(JsonDBman.dbarrays, arrayTableRow)
-            }
-            records.add(arrayTable)
-            jsonElement.asJsonArray.iterator().forEach {
-                records.addAll(praseJsonElement(tableName, tableRow, elementName, it.asJsonObject))
-            }
+            records.addAll(
+                praseJsonArrary(
+                    tableName,
+                    elementName,
+                    jsonElement.asJsonArray,
+                    primaryLinkValue,
+                    primaryKeyPair
+                )
+            )
         } else {
             var value = jsonElement.toString()
             try {
@@ -111,15 +117,48 @@ object JsonHelper {
         return records
     }
 
-    fun getKey(tableName: String, mode: String): Array<String> {
+    fun praseJsonArrary(
+        tableName: String,
+        elementName: String,
+        jsonArray: JsonArray,
+        link: String? = null,
+        key: Pair<String, String>? = null
+    ): List<HashMap<String, HashMap<String, String>>> {
+        val primaryKey = getPrimaryKey(JsonDBman.dbarrays)
+        val primaryKeyName = primaryKey.first
+        val primaryKeyValue = primaryKey.second
+        val primaryLink = getLink(elementName)
+        val primaryLinkName = JsonDBman.dblinks
+        val primaryLinkValue = if (link == null) primaryLink.second else link
+        val records = ArrayList<HashMap<String, HashMap<String, String>>>()
+        val tableRow = HashMap<String, String>()
+
+        val arrayTableRow = HashMap<String, String>().apply {
+            put(primaryKeyName, primaryKeyValue)
+            put(JsonDBman.dbprimarykey, key!!.second)
+            put(JsonDBman.dblinks, primaryLinkValue)
+            put(JsonDBman.dbarrays, elementName)
+        }
+        val arrayTable = HashMap<String, HashMap<String, String>>().apply {
+            put(JsonDBman.dbarrays, arrayTableRow)
+        }
+        records.add(arrayTable)
+        jsonArray.iterator().forEach {
+            records.addAll(praseJsonElement(tableName, tableRow, elementName, it, link))
+        }
+
+        return records
+    }
+
+    fun getKey(tableName: String, mode: String): Pair<String, String> {
         val primaryKey = "${JsonDBman.dbprimarykey}_${tableName}_$mode"
         val primaryKeyValue = "${JsonDBman.dbprimarykeyid}_ID_${UUID.randomUUID()}_${System.currentTimeMillis()}"
-        val keyValue = arrayOf(primaryKey, primaryKeyValue)
+        val keyValue = Pair(primaryKey, primaryKeyValue)
         return keyValue
     }
 
-    fun getPrimaryKey(tableName: String): Array<String> = getKey(tableName, "ID")
-    fun getLink(tableName: String): Array<String> = getKey(tableName, "LINK")
+    fun getPrimaryKey(tableName: String) = getKey(tableName, "ID")
+    fun getLink(tableName: String) = getKey(tableName, "LINK")
 
     fun saveJsonToDB(tableName: String, jsonObject: JsonObject) {
 //        System.out.println("saveJsonToDB")
@@ -182,6 +221,7 @@ object JsonHelper {
 
     fun getJson(tableName: String, key: String?, value: String): JsonElement {
         val jsonArray = loadFromDB(tableName, key, value)
+//        val arrayRs= getArraryTable("")
         val jsonElement = if (jsonArray.size() > 1) jsonArray else jsonArray[0].asJsonObject
         return jsonElement
     }
@@ -204,7 +244,7 @@ object JsonHelper {
                 if (jsonKey.equals("${JsonDBman.dbprimarykey}_${tableName}_ID") || jsonKey.equals(JsonDBman.dblinks)) {
                     continue
                 }
-                if (jsonKey.startsWith(JsonDBman.dbprimarykey)) {
+                if (jsonValue.startsWith(JsonDBman.dbprimarykey)) {
                     val subJsonElement = getJson(jsonKey, JsonDBman.dblinks, jsonValue)
                     jsonObject.add(jsonKey, subJsonElement)
                 } else {
