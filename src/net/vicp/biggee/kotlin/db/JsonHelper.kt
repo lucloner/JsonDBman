@@ -33,15 +33,20 @@ object JsonHelper {
         return res
     }
 
-    fun initTable(tableName: String, jsonObject: JsonObject): List<HashMap<String, HashMap<String, String>>> {
+    private fun initTable(tableName: String, jsonObject: JsonObject) = praseJsonObject(tableName, jsonObject)
 
-        return praseJsonObject(tableName, jsonObject)
+    private fun getArraryTable(linkID: String? = null): ResultSet {
+        var whereSQL = " WHERE"
+        if (linkID == null) {
+            whereSQL = ""
+        } else {
+            whereSQL += " [${JsonDBman.dblinks}]='$linkID'"
+        }
+
+        return statement.executeQuery("SELECT * FROM [${JsonDBman.dbarrays}]$whereSQL ")
     }
 
-    fun getArraryTable(linkID: String): ResultSet =
-        statement.executeQuery("SELECT * FROM [${JsonDBman.dbarrays}] WHERE [${JsonDBman.dblinks}]='$linkID'")
-
-    fun praseJsonObject(
+    private fun praseJsonObject(
         tableName: String,
         jsonObject: JsonObject,
         link: String? = null
@@ -70,7 +75,7 @@ object JsonHelper {
         return records
     }
 
-    fun praseJsonElement(
+    private fun praseJsonElement(
         tableName: String,
         tableRow: HashMap<String, String>,
         elementName: String,
@@ -117,7 +122,7 @@ object JsonHelper {
         return records
     }
 
-    fun praseJsonArrary(
+    private fun praseJsonArrary(
         tableName: String,
         elementName: String,
         jsonArray: JsonArray,
@@ -128,7 +133,7 @@ object JsonHelper {
         val primaryKeyName = primaryKey.first
         val primaryKeyValue = primaryKey.second
         val primaryLink = getLink(elementName)
-        val primaryLinkName = JsonDBman.dblinks
+//        val primaryLinkName = JsonDBman.dblinks
         val primaryLinkValue = if (link == null) primaryLink.second else link
         val records = ArrayList<HashMap<String, HashMap<String, String>>>()
         val tableRow = HashMap<String, String>()
@@ -146,19 +151,18 @@ object JsonHelper {
         jsonArray.iterator().forEach {
             records.addAll(praseJsonElement(tableName, tableRow, elementName, it, link))
         }
-
         return records
     }
 
-    fun getKey(tableName: String, mode: String): Pair<String, String> {
+    private fun getKey(tableName: String, mode: String): Pair<String, String> {
         val primaryKey = "${JsonDBman.dbprimarykey}_${tableName}_$mode"
         val primaryKeyValue = "${JsonDBman.dbprimarykeyid}_ID_${UUID.randomUUID()}_${System.currentTimeMillis()}"
         val keyValue = Pair(primaryKey, primaryKeyValue)
         return keyValue
     }
 
-    fun getPrimaryKey(tableName: String) = getKey(tableName, "ID")
-    fun getLink(tableName: String) = getKey(tableName, "LINK")
+    private fun getPrimaryKey(tableName: String) = getKey(tableName, "ID")
+    private fun getLink(tableName: String) = getKey(tableName, "LINK")
 
     fun saveJsonToDB(tableName: String, jsonObject: JsonObject) {
 //        System.out.println("saveJsonToDB")
@@ -193,7 +197,7 @@ object JsonHelper {
         statement.execute(insertIntoSQL)
     }
 
-    fun fitTable(tableName: String, collist: Iterator<String>) {
+    private fun fitTable(tableName: String, collist: Iterator<String>) {
         val rs =
             statement.executeQuery("SELECT [COLUMN_NAME] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME]='$tableName'")
         val newList = HashSet<String>().apply {
@@ -219,42 +223,73 @@ object JsonHelper {
         statement.execute(sql)
     }
 
-    fun getJson(tableName: String, key: String?, value: String): JsonElement {
-        val jsonArray = loadFromDB(tableName, key, value)
-//        val arrayRs= getArraryTable("")
-        val jsonElement = if (jsonArray.size() > 1) jsonArray else jsonArray[0].asJsonObject
+    fun getJsonObject(tableName: String, key: String? = null, value: String? = null): JsonObject {
+        var jsonObject = JsonObject()
+        val rs = loadFromDB(tableName, key, value)
+        if (rs.last()) {
+            jsonObject = getJsonFromRs(rs, tableName)
+        }
+        rs.close()
+        return jsonObject
+    }
+
+    fun getJsonElement(tableName: String, key: String? = null, value: String? = null): JsonElement {
+        var jsonElement: JsonElement = JsonObject()
+        val arrayRs = getArraryTable(value)
+        if (arrayRs.fetchSize > 0) {
+            jsonElement = getJsonArray(tableName, key, value)
+        } else {
+            jsonElement = getJsonObject(tableName, key, value)
+        }
+        arrayRs.close()
         return jsonElement
     }
 
-    fun loadFromDB(tableName: String, key: String?, value: String): JsonArray {
-        var k = key
-        var v = value
-        if (k == null) {
-            k = "${JsonDBman.dbprimarykey}_${tableName}_ID"
-            v = "${JsonDBman.dbprimarykeyid}_$v"
-        }
+    fun getJsonArray(tableName: String, key: String? = null, value: String? = null): JsonArray {
         val jsonArray = JsonArray()
-        val rs = statement.executeQuery("SELECT * FROM [$tableName] WHERE [$k]='$v'")
+        val rs = loadFromDB(tableName, key, value)
         while (rs.next()) {
-            val jsonObject = JsonObject()
-            val keyCnt = rs.metaData.columnCount
-            for (index in 1..keyCnt) {
-                val jsonKey = rs.metaData.getColumnName(index)
-                val jsonValue = rs.getString(index)
-                if (jsonKey.equals("${JsonDBman.dbprimarykey}_${tableName}_ID") || jsonKey.equals(JsonDBman.dblinks)) {
-                    continue
-                }
-                if (jsonValue.startsWith(JsonDBman.dbprimarykey)) {
-                    val subJsonElement = getJson(jsonKey, JsonDBman.dblinks, jsonValue)
-                    jsonObject.add(jsonKey, subJsonElement)
-                } else {
-                    jsonObject.addProperty(jsonKey, jsonValue)
-                }
-            }
+            val jsonObject = getJsonFromRs(rs, tableName)
             jsonArray.add(jsonObject)
         }
         rs.close()
         return jsonArray
+    }
+
+    private fun getJsonFromRs(rs: ResultSet, tableName: String = ""): JsonObject {
+        val jsonObject = JsonObject()
+        val keyCnt = rs.metaData.columnCount
+        for (index in 1..keyCnt) {
+            val jsonKey = rs.metaData.getColumnName(index)
+            val jsonValue = rs.getString(index)
+            if (jsonKey.equals("${JsonDBman.dbprimarykey}_${tableName}_ID") || jsonKey.equals(JsonDBman.dblinks)) {
+                continue
+            }
+            if (jsonValue.startsWith(JsonDBman.dblinkheader)) {
+                val subJsonElement = getJsonElement(jsonKey, JsonDBman.dblinks, jsonValue)
+                jsonObject.add(jsonKey, subJsonElement)
+            } else {
+                jsonObject.addProperty(jsonKey, jsonValue)
+            }
+        }
+        return jsonObject
+    }
+
+    private fun loadFromDB(tableName: String, key: String?, value: String?): ResultSet {
+        var k = key
+        var v = value
+        var whereSQL = " WHERE"
+        if (value == null) {
+            whereSQL = ""
+        } else {
+            if (k == null) {
+                k = "${JsonDBman.dbprimarykey}_${tableName}_ID"
+                v = "${JsonDBman.dbprimarykeyid}_$v"
+            }
+            whereSQL += " [$k]='$v'"
+        }
+        val rs = dbConn.createStatement().executeQuery("SELECT * FROM [$tableName]$whereSQL")
+        return rs
     }
 
     fun finalize() {

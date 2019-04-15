@@ -32,15 +32,13 @@ class JsonDBman {
     fun t4() {
         JsonDBman.dbname = "JT1"
         t1()
-        val jsonElement = JsonHelper.getJson(
-            "t3again4",
-            "JsonDBman_JsonDBmanTAGS_t3again4_ID",
-            "JsonDBman_JsonDBmanTAGS_ID_ID_42952bf4-4875-4bc1-bd73-f224e3cca5f3_1555137358606"
+        val jsonElement = JsonHelper.getJsonElement(
+            "t3again4"
         )
         System.out.println(jsonElement.toString())
     }
 }
 
 fun main(args: Array<String>) {
-    net.vicp.biggee.kotlin.tests.JsonDBman().t3()
+    net.vicp.biggee.kotlin.tests.JsonDBman().t4()
 }
