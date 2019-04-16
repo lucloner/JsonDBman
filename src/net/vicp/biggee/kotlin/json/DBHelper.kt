@@ -6,13 +6,13 @@ import com.google.gson.JsonObject
 import net.vicp.biggee.kotlin.db.JsonHelper
 
 object DBHelper {
-    fun getLatestJsonArraryFromDB(tableName: String, key: String): JsonArray {
+    fun getLatestJsonArrayFromDB(tableName: String, key: String): JsonArray {
         val jsonArray = JsonHelper.getJsonArray(tableName)
-        val returnArray = getLatestJsonArrary(jsonArray, key)
+        val returnArray = getLatestJsonArray(jsonArray, key)
         return returnArray
     }
 
-    private fun getLatestJsonArrary(jsonArray: JsonArray, key: String): JsonArray {
+    private fun getLatestJsonArray(jsonArray: JsonArray, key: String): JsonArray {
         val returnArray = JsonArray()
         val latest = HashMap<String, JsonElement>()
         jsonArray.iterator().forEach {
@@ -25,7 +25,7 @@ object DBHelper {
                     System.out.println("没有找到关键字:$key")
                 }
             } else if (it is JsonArray) {
-                val subArray = getLatestJsonArrary(it, key)
+                val subArray = getLatestJsonArray(it, key)
                 returnArray.add(subArray)
             } else {
                 latest.put("", it)

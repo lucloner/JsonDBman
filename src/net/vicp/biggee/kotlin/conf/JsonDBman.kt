@@ -31,7 +31,7 @@ object JsonDBman {
     var dbdriver = "net.sourceforge.jtds.jdbc.Driver"
     var dbprot = "jdbc:jtds:sqlserver"
     var dbcharset = "UTF-8"
-    var dbarrays = "${thisname}_${tag}_ARRARYS"
+    var dbarrays = "${thisname}_${tag}_ARRAYS"
     var dbprimarykey = "${thisname}_${tag}"
     var dbprimarykeyid = "${thisname}_${tag}_ID"
     var dblinks = "${thisname}_${tag}_LINKS"

@@ -53,7 +53,7 @@ private class JsonDBman {
     fun t6() {
         JsonDBman.dbname = "JT1"
         t1()
-        val jsonElement = DBHelper.getLatestJsonArraryFromDB("t3again4", "deviceNo")
+        val jsonElement = DBHelper.getLatestJsonArrayFromDB("t3again4", "deviceNo")
         System.out.println(jsonElement.toString())
 //        System.out.println(jsonElement.asJsonArray.size())
     }
@@ -61,7 +61,7 @@ private class JsonDBman {
     fun t7() {
         JsonDBman.dbname = "JT1"
         t1()
-        val jsonElement = DBHelper.getLatestJsonArraryFromDB("t3again4", "deviceNo1")
+        val jsonElement = DBHelper.getLatestJsonArrayFromDB("t3again4", "deviceNo1")
         System.out.println(jsonElement.toString())
 //        System.out.println(jsonElement.asJsonArray.size())
     }

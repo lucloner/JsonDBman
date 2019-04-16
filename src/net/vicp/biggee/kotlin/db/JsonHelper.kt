@@ -37,7 +37,7 @@ object JsonHelper {
         return praseJsonElement(tableName, HashMap(), tableName, jsonElement)
     }
 
-    private fun getArraryTable(linkID: String? = null): ResultSet {
+    private fun getArrayTable(linkID: String? = null): ResultSet {
         var whereSQL = " WHERE"
         if (linkID == null) {
             whereSQL = ""
@@ -108,7 +108,7 @@ object JsonHelper {
             records.addAll(praseJsonObject(elementName, jsonElement.asJsonObject, link))
         } else if (jsonElement.isJsonArray) {
             records.addAll(
-                praseJsonArrary(
+                praseJsonArray(
                     tableName,
                     elementName,
                     jsonElement.asJsonArray,
@@ -128,7 +128,7 @@ object JsonHelper {
         return records
     }
 
-    private fun praseJsonArrary(
+    private fun praseJsonArray(
         tableName: String,
         elementName: String,
         jsonArray: JsonArray,
@@ -229,8 +229,8 @@ object JsonHelper {
         statement.execute(sql)
     }
 
-    private fun checkArrary(key: String, value: String): Boolean {
-        val arrayRs = getArraryTable()
+    private fun checkArray(key: String, value: String): Boolean {
+        val arrayRs = getArrayTable()
         while (arrayRs.next()) {
             val linkToTable = arrayRs.getString(JsonDBman.dbarrays)
             val link = arrayRs.getString(JsonDBman.dblinks)
