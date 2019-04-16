@@ -254,15 +254,12 @@ object JsonHelper {
     }
 
     fun getJsonElement(tableName: String, key: String? = null, value: String? = null): JsonElement {
-        var jsonElement: JsonElement = JsonObject()
-        jsonElement = getJsonObject(tableName, key, value)
-        var k = key
-        var v = value
+        var jsonElement: JsonElement = getJsonObject(tableName, key, value)
         val testJsonObject = jsonElement.asJsonObject
         val isArray = testJsonObject.keySet().contains(JsonDBman.dblinks)
         if (isArray) {
-            k = JsonDBman.dblinks
-            v = testJsonObject.get(k).asString
+            val k: String? = JsonDBman.dblinks
+            val v: String? = testJsonObject.get(k).asString
             System.out.println("检测数组link:$v\t数组字段:${k}")
             jsonElement = getJsonArray(tableName, k, v)
         }
