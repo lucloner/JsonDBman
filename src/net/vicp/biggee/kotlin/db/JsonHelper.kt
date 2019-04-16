@@ -12,11 +12,11 @@ import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 
 object JsonHelper {
-    val dbConn by lazy {
+    private val dbConn by lazy {
         Class.forName(JsonDBman.dbdriver)
         DriverManager.getConnection(JsonDBman.connStr)
     }
-    val statement by lazy {
+    private val statement by lazy {
         dbConn.createStatement()
     }
 
@@ -33,7 +33,9 @@ object JsonHelper {
         return res
     }
 
-    private fun initTable(tableName: String, jsonObject: JsonObject) = praseJsonObject(tableName, jsonObject)
+    private fun initTable(tableName: String, jsonElement: JsonElement): List<HashMap<String, HashMap<String, String>>> {
+        return praseJsonElement(tableName, HashMap(), tableName, jsonElement)
+    }
 
     private fun getArraryTable(linkID: String? = null): ResultSet {
         var whereSQL = " WHERE"
@@ -43,7 +45,11 @@ object JsonHelper {
             whereSQL += " [${JsonDBman.dblinks}]='$linkID'"
         }
 
-        return statement.executeQuery("SELECT * FROM [${JsonDBman.dbarrays}]$whereSQL ")
+        return dbConn.createStatement(
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_READ_ONLY,
+            ResultSet.HOLD_CURSORS_OVER_COMMIT
+        ).executeQuery("SELECT * FROM [${JsonDBman.dbarrays}]$whereSQL ")
     }
 
     private fun praseJsonObject(
@@ -164,9 +170,9 @@ object JsonHelper {
     private fun getPrimaryKey(tableName: String) = getKey(tableName, "ID")
     private fun getLink(tableName: String) = getKey(tableName, "LINK")
 
-    fun saveJsonToDB(tableName: String, jsonObject: JsonObject) {
+    fun saveJsonToDB(tableName: String, jsonElement: JsonElement) {
 //        System.out.println("saveJsonToDB")
-        val missionList = initTable(tableName, jsonObject)
+        val missionList = initTable(tableName, jsonElement)
         missionList.iterator().forEach {
             it.iterator().forEach {
                 saveToDB(it.key, it.value)
@@ -174,7 +180,7 @@ object JsonHelper {
         }
     }
 
-    fun saveToDB(tableName: String, tableData: HashMap<String, String>) {
+    private fun saveToDB(tableName: String, tableData: HashMap<String, String>) {
         val createTable =
             "IF NOT EXISTS (SELECT * FROM sysobjects WHERE id = object_id('$tableName') and OBJECTPROPERTY(id, 'IsUserTable') = 1) CREATE TABLE [$tableName] ("
         val insertInto = "INSERT INTO [$tableName] ("
@@ -223,6 +229,20 @@ object JsonHelper {
         statement.execute(sql)
     }
 
+    private fun checkArrary(key: String, value: String): Boolean {
+        val arrayRs = getArraryTable()
+        while (arrayRs.next()) {
+            val linkToTable = arrayRs.getString(JsonDBman.dbarrays)
+            val link = arrayRs.getString(JsonDBman.dblinks)
+            if (key == linkToTable && value == link) {
+                arrayRs.close()
+                return true
+            }
+        }
+        arrayRs.close()
+        return false
+    }
+
     fun getJsonObject(tableName: String, key: String? = null, value: String? = null): JsonObject {
         var jsonObject = JsonObject()
         val rs = loadFromDB(tableName, key, value)
@@ -235,13 +255,17 @@ object JsonHelper {
 
     fun getJsonElement(tableName: String, key: String? = null, value: String? = null): JsonElement {
         var jsonElement: JsonElement = JsonObject()
-        val arrayRs = getArraryTable(value)
-        if (arrayRs.fetchSize > 0) {
-            jsonElement = getJsonArray(tableName, key, value)
-        } else {
-            jsonElement = getJsonObject(tableName, key, value)
+        jsonElement = getJsonObject(tableName, key, value)
+        var k = key
+        var v = value
+        val testJsonObject = jsonElement.asJsonObject
+        val isArray = testJsonObject.keySet().contains(JsonDBman.dblinks)
+        if (isArray) {
+            k = JsonDBman.dblinks
+            v = testJsonObject.get(k).asString
+            System.out.println("检测数组link:$v\t数组字段:${k}")
+            jsonElement = getJsonArray(tableName, k, v)
         }
-        arrayRs.close()
         return jsonElement
     }
 
@@ -288,7 +312,11 @@ object JsonHelper {
             }
             whereSQL += " [$k]='$v'"
         }
-        val rs = dbConn.createStatement().executeQuery("SELECT * FROM [$tableName]$whereSQL")
+        val rs = dbConn.createStatement(
+            ResultSet.TYPE_SCROLL_INSENSITIVE,
+            ResultSet.CONCUR_READ_ONLY,
+            ResultSet.HOLD_CURSORS_OVER_COMMIT
+        ).executeQuery("SELECT * FROM [$tableName]$whereSQL")
         return rs
     }
 

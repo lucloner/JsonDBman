@@ -4,10 +4,10 @@ import com.google.gson.JsonParser
 import net.vicp.biggee.kotlin.conf.JsonDBman
 import net.vicp.biggee.kotlin.db.JsonHelper
 
-class JsonDBman {
+private class JsonDBman {
     fun t1() {
         JsonDBman.dbpass = "1Aalalala"
-        System.out.println(JsonHelper.dbConn)
+//        System.out.println(JsonHelper.dbConn)
     }
 
     fun t2() {
@@ -36,9 +36,22 @@ class JsonDBman {
             "t3again4"
         )
         System.out.println(jsonElement.toString())
+//        System.out.println(jsonElement.asJsonArray.size())
+    }
+
+    fun t5() {
+        JsonDBman.dbname = "JT1"
+        t1()
+        val jsonElement = JsonHelper.getJsonArray(
+            "t3again4"
+        )
+        System.out.println(jsonElement.toString())
+//        System.out.println(jsonElement.asJsonArray.size())
     }
 }
 
 fun main(args: Array<String>) {
-    net.vicp.biggee.kotlin.tests.JsonDBman().t4()
+//    net.vicp.biggee.kotlin.tests.JsonDBman().t3()
+//    net.vicp.biggee.kotlin.tests.JsonDBman().t4()
+    net.vicp.biggee.kotlin.tests.JsonDBman().t5()
 }

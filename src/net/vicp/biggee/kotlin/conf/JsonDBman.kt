@@ -3,6 +3,7 @@ package net.vicp.biggee.kotlin.conf
 import net.vicp.biggee.kotlin.db.JsonHelper
 
 object JsonDBman {
+    val params = arrayOf("tag", "thisname")
     var tag = "JsonDBmanTAGS"
     var thisname = "JsonDBman"
     var dbip = "127.0.0.1"
