@@ -3,6 +3,7 @@ package net.vicp.biggee.kotlin.tests
 import com.google.gson.JsonParser
 import net.vicp.biggee.kotlin.conf.JsonDBman
 import net.vicp.biggee.kotlin.db.JsonHelper
+import net.vicp.biggee.kotlin.json.DBHelper
 
 private class JsonDBman {
     fun t1() {
@@ -48,10 +49,27 @@ private class JsonDBman {
         System.out.println(jsonElement.toString())
 //        System.out.println(jsonElement.asJsonArray.size())
     }
+
+    fun t6() {
+        JsonDBman.dbname = "JT1"
+        t1()
+        val jsonElement = DBHelper.getLatestJsonArraryFromDB("t3again4", "deviceNo")
+        System.out.println(jsonElement.toString())
+//        System.out.println(jsonElement.asJsonArray.size())
+    }
+
+    fun t7() {
+        JsonDBman.dbname = "JT1"
+        t1()
+        val jsonElement = DBHelper.getLatestJsonArraryFromDB("t3again4", "deviceNo1")
+        System.out.println(jsonElement.toString())
+//        System.out.println(jsonElement.asJsonArray.size())
+    }
 }
 
 fun main(args: Array<String>) {
-//    net.vicp.biggee.kotlin.tests.JsonDBman().t3()
+    net.vicp.biggee.kotlin.tests.JsonDBman().t3()
 //    net.vicp.biggee.kotlin.tests.JsonDBman().t4()
-    net.vicp.biggee.kotlin.tests.JsonDBman().t5()
+    net.vicp.biggee.kotlin.tests.JsonDBman().t6()
+    net.vicp.biggee.kotlin.tests.JsonDBman().t7()
 }
