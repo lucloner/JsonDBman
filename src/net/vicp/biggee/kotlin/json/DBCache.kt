@@ -60,7 +60,7 @@ object DBCache {
     }
 
     private fun fillJsonObject(jsonObject: JsonObject): JsonObject {
-        var returnJsonObject = JsonObject()
+        var returnJsonObject = jsonObject
         cache_json.iterator().forEach {
             val cachedJsonObject = JsonParser().parse(it).asJsonObject
             returnJsonObject = mergJson(returnJsonObject, cachedJsonObject)
