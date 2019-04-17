@@ -9,6 +9,7 @@ object DBHelper {
     fun getLatestJsonArrayFromDB(tableName: String, key: String): JsonArray {
         val jsonArray = JsonHelper.getJsonArray(tableName)
         val returnArray = getLatestJsonArray(jsonArray, key)
+        DBCache.collectCache(returnArray.toString(), tableName, key)
         return returnArray
     }
 
