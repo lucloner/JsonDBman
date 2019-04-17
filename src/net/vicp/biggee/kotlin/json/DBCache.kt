@@ -70,10 +70,11 @@ object DBCache {
     }
 
     fun filterJson(jsonObject: JsonObject, availableKey: Array<out String?>): JsonObject {
-        val returnJsonObject = JsonObject()
-        jsonObject.keySet().iterator().forEach {
-            if (availableKey.contains(it)) {
-                returnJsonObject.add(it, jsonObject[it])
+        val returnJsonObject = jsonObject
+        returnJsonObject.keySet().iterator().forEach {
+            if (!availableKey.contains(it)) {
+                returnJsonObject.remove(it)
+            } else {
                 collectCache(returnJsonObject.toString(), null, it)
             }
         }
@@ -81,7 +82,7 @@ object DBCache {
     }
 
     fun mergJson(vararg jsonObject: JsonObject): JsonObject {
-        val returnJsonObject = JsonObject()
+        val returnJsonObject = jsonObject[0]
         jsonObject.iterator().forEach {
             val thisJson = it
             thisJson.keySet().iterator().forEach {
