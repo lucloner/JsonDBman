@@ -4,12 +4,45 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 
 object DBCache {
+    private var stopflag = false
     val cache_tableNjson = HashMap<String, String>()
     val cache_keyNjson = HashMap<String, String>()
     val cache_idNlink = HashMap<String, String>()
     val cache_json = HashSet<String>()
     val cache_jsonArray = HashSet<String>()
-    private val caches = arrayOf(cache_tableNjson, cache_keyNjson, cache_idNlink, cache_json, cache_jsonArray)
+    val cache_loadDBpath = HashMap<String, String>()
+
+    private val caches =
+        arrayOf(cache_tableNjson, cache_keyNjson, cache_idNlink, cache_json, cache_jsonArray, cache_loadDBpath)
+
+    fun stop() {
+        stopflag = true
+    }
+
+    fun checkStopFlag(): Boolean {
+        if (stopflag) {
+            stopflag = false
+            return true
+        }
+        return false
+    }
+
+    fun collectPath(vararg paths: Pair<String, String>) {
+        Thread {
+            paths.iterator().forEach {
+                if (cache_tableNjson.containsKey(it.first)) {
+                    Thread {
+                        if (cache_loadDBpath[it.first].equals(it.second)) {
+                            throw LinkageError("table name&column catched")
+                        } else {
+                            throw LinkageError("table name catched")
+                        }
+                    }.start()
+                }
+                cache_loadDBpath.put(it.first, it.second)
+            }
+        }.start()
+    }
 
     fun collectCache(json: String, table: String? = null, vararg key: String?) {
         Thread {
@@ -92,6 +125,12 @@ object DBCache {
             }
         }
         return returnJsonObject
+    }
+
+    fun updateJson(originJsonObject: JsonObject, vararg patchJsonObject: JsonObject): Boolean {
+        val originJson = originJsonObject.toString()
+        val patchedJson = mergJson(originJsonObject, *patchJsonObject).toString()
+        return !originJson.equals(patchedJson)
     }
 
     fun flushCache() {

@@ -115,10 +115,9 @@ object JsonHelper {
             )
         }
 
-        if (jsonElement.isJsonObject) {
-            records.addAll(praseJsonObject(elementName, jsonElement.asJsonObject, link))
-        } else if (jsonElement.isJsonArray) {
-            records.addAll(
+        when {
+            jsonElement.isJsonObject -> records.addAll(praseJsonObject(elementName, jsonElement.asJsonObject, link))
+            jsonElement.isJsonArray -> records.addAll(
                 praseJsonArray(
                     tableName,
                     elementName,
@@ -127,14 +126,15 @@ object JsonHelper {
                     primaryKeyPair
                 )
             )
-        } else {
-            var value = jsonElement.toString()
-            try {
-                value = jsonElement.asString
-            } catch (e: Exception) {
-                e.printStackTrace()
+            else -> {
+                var value = jsonElement.toString()
+                try {
+                    value = jsonElement.asString
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+                tableRow.put(elementName, value)
             }
-            tableRow.put(elementName, value)
         }
         return records
     }
@@ -334,11 +334,16 @@ object JsonHelper {
             }
             whereSQL += " [$k]='$v'"
         }
+        DBCache.collectPath(Pair(tableName, k ?: ""))
+        var sql = "SELECT * FROM [$tableName]$whereSQL"
+        if (DBCache.checkStopFlag()) {
+            sql = "SELECT interrupted=1"
+        }
         val rs = dbConn.createStatement(
             ResultSet.TYPE_SCROLL_INSENSITIVE,
             ResultSet.CONCUR_READ_ONLY,
             ResultSet.HOLD_CURSORS_OVER_COMMIT
-        ).executeQuery("SELECT * FROM [$tableName]$whereSQL")
+        ).executeQuery(sql)
         DBCache.collectCacheKeyPair(Pair(k ?: "", v ?: ""))
         return rs
     }
