@@ -19,12 +19,16 @@ object DBHelper {
         val t = Thread {
             jsonArray.addAll(getLatestJsonArrayFromDB(tableName, *keys))
         }.apply {
-            setUncaughtExceptionHandler { t, e ->
-                e.printStackTrace()
-                if (e is LinkageError) {
-                    DBCache.stop()
+            DBCache.uncaughtExceptionHandler.clear()
+            DBCache.uncaughtExceptionHandler.add(
+                Thread.UncaughtExceptionHandler { t, e ->
+                    System.out.println("getJsonSafe:${t.name}")
+                    e.printStackTrace()
+                    if (e is LinkageError) {
+                        DBCache.stop()
+                    }
                 }
-            }
+            )
             isDaemon = true
             start()
         }

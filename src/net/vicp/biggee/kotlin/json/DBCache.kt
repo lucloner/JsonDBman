@@ -3,14 +3,30 @@ package net.vicp.biggee.kotlin.json
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 
-object DBCache {
+object DBCache : Thread.UncaughtExceptionHandler {
     private var stopflag = false
+    val uncaughtExceptionHandler = HashSet<Thread.UncaughtExceptionHandler>()
     val cache_tableNjson = HashMap<String, String>()
     val cache_keyNjson = HashMap<String, String>()
     val cache_idNlink = HashMap<String, String>()
     val cache_json = HashSet<String>()
     val cache_jsonArray = HashSet<String>()
     val cache_loadDBpath = HashMap<String, String>()
+
+    /**
+     * Method invoked when the given thread terminates due to the
+     * given uncaught exception.
+     *
+     * Any exception thrown by this method will be ignored by the
+     * Java Virtual Machine.
+     * @param t the thread
+     * @param e the exception
+     */
+    override fun uncaughtException(t: Thread?, e: Throwable?) {
+        uncaughtExceptionHandler.iterator().forEach {
+            it.uncaughtException(t, e)
+        }
+    }
 
     private val caches =
         arrayOf(cache_tableNjson, cache_keyNjson, cache_idNlink, cache_json, cache_jsonArray, cache_loadDBpath)
@@ -34,10 +50,12 @@ object DBCache {
                     Thread {
                         if (cache_loadDBpath[it.first].equals(it.second)) {
                             throw LinkageError("table name&column catched")
-                        } else {
-                            throw LinkageError("table name catched")
                         }
-                    }.start()
+                        throw LinkageError("table name catched")
+                    }.apply {
+                        uncaughtExceptionHandler = this@DBCache
+                        start()
+                    }
                 }
                 cache_loadDBpath.put(it.first, it.second)
             }
