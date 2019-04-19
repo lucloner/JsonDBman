@@ -1,5 +1,6 @@
 package net.vicp.biggee.kotlin.json
 
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 
@@ -154,9 +155,47 @@ object DBCache : Thread.UncaughtExceptionHandler {
     fun flushCache() {
         caches.iterator().forEach {
             when (it) {
-                is java.util.Map<*, *> -> it.clear()
-                is java.util.Set<*> -> it.clear()
+                is MutableMap<*, *> -> it.clear()
+                is MutableSet<*> -> it.clear()
             }
         }
     }
+
+    fun locateJson(jsonElement: JsonElement, key: String): JsonElement {
+        when {
+            jsonElement.isJsonObject -> {
+                val jsonObject = jsonElement.asJsonObject
+                if (jsonObject.has(key)) {
+                    System.out.println("found jsonObject")
+                    return jsonObject
+                }
+                jsonObject.keySet().iterator().forEach {
+                    val found = locateJson(jsonObject[it], key)
+                    if (!found.isJsonNull) {
+                        return found
+                    }
+                }
+            }
+            jsonElement.isJsonArray -> {
+                jsonElement.asJsonArray.iterator().forEach {
+                    val found = locateJson(it, key)
+                    if (!found.isJsonNull) {
+                        return found
+                    }
+                }
+            }
+            jsonElement.isJsonNull -> {
+                System.out.println("isJsonNull")
+            }
+            else -> {
+                if (jsonElement.toString().contains(key)) {
+                    System.out.println("$key is value")
+                    return jsonElement
+                }
+            }
+        }
+        System.out.println("not found $key")
+        return JsonObject().asJsonNull
+    }
+
 }
