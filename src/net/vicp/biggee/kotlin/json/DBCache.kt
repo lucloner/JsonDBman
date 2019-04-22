@@ -166,7 +166,7 @@ object DBCache : Thread.UncaughtExceptionHandler {
             jsonElement.isJsonObject -> {
                 val jsonObject = jsonElement.asJsonObject
                 if (jsonObject.has(key)) {
-                    System.out.println("found jsonObject")
+//                    System.out.println("found jsonObject")
                     return jsonObject
                 }
                 jsonObject.keySet().iterator().forEach {
@@ -185,16 +185,16 @@ object DBCache : Thread.UncaughtExceptionHandler {
                 }
             }
             jsonElement.isJsonNull -> {
-                System.out.println("isJsonNull")
+//                System.out.println("isJsonNull")
             }
             else -> {
                 if (jsonElement.toString().contains(key)) {
-                    System.out.println("$key is value")
+//                    System.out.println("$key is value")
                     return jsonElement
                 }
             }
         }
-        System.out.println("not found $key")
+//        System.out.println("not found $key")
         return JsonObject().asJsonNull
     }
 

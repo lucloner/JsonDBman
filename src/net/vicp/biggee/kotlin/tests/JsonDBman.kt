@@ -4,6 +4,7 @@ import com.google.gson.JsonParser
 import net.vicp.biggee.kotlin.conf.JsonDBman
 import net.vicp.biggee.kotlin.db.JsonHelper
 import net.vicp.biggee.kotlin.json.DBHelper
+import java.io.File
 
 private class JsonDBman {
     fun t1() {
@@ -36,7 +37,7 @@ private class JsonDBman {
         val jsonElement = JsonHelper.getJsonElement(
             "t3again4"
         )
-        System.out.println(jsonElement.toString())
+//        System.out.println(jsonElement.toString())
 //        System.out.println(jsonElement.asJsonArray.size())
     }
 
@@ -46,7 +47,7 @@ private class JsonDBman {
         val jsonElement = JsonHelper.getJsonArray(
             "t3again4"
         )
-        System.out.println(jsonElement.toString())
+//        System.out.println(jsonElement.toString())
 //        System.out.println(jsonElement.asJsonArray.size())
     }
 
@@ -54,7 +55,7 @@ private class JsonDBman {
         JsonDBman.dbname = "JT1"
         t1()
         val jsonElement = DBHelper.getLatestJsonArrayFromDB("t3again4", "deviceNo")
-        System.out.println(jsonElement.toString())
+//        System.out.println(jsonElement.toString())
 //        System.out.println(jsonElement.asJsonArray.size())
     }
 
@@ -62,14 +63,20 @@ private class JsonDBman {
         JsonDBman.dbname = "JT1"
         t1()
         val jsonElement = DBHelper.getLatestJsonArrayFromDB("t3again4", "deviceNo1")
-        System.out.println(jsonElement.toString())
+//        System.out.println(jsonElement.toString())
 //        System.out.println(jsonElement.asJsonArray.size())
+    }
+
+    fun t8() {
+        val strJson = File("/home/lucloner/source/hajava/SDKServerDemo/testjson").readText()
+        val jsonElement = JsonParser().parse(strJson)
+        val jsonArray = jsonElement.asJsonArray
+        val jsonObject = jsonArray.first().asJsonObject
+        println("测试输出:${strJson.length}\t${jsonObject["deviceNo"].asString}")
+        JsonHelper.saveJsonToDB("t3again4", jsonObject)
     }
 }
 
 fun main(args: Array<String>) {
-    net.vicp.biggee.kotlin.tests.JsonDBman().t3()
-//    net.vicp.biggee.kotlin.tests.JsonDBman().t4()
-    net.vicp.biggee.kotlin.tests.JsonDBman().t6()
-    net.vicp.biggee.kotlin.tests.JsonDBman().t7()
+    net.vicp.biggee.kotlin.tests.JsonDBman().t8()
 }

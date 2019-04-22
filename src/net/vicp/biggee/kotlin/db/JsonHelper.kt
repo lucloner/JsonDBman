@@ -58,7 +58,7 @@ object JsonHelper {
         jsonObject: JsonObject,
         link: String? = null
     ): List<HashMap<String, HashMap<String, String>>> {
-        System.out.println("praseJsonObject$jsonObject")
+        System.out.println("praseJsonObject${jsonObject.hashCode()}")
         DBCache.collectCache(jsonObject.toString(), tableName, link)
         val primaryKey = getPrimaryKey(tableName)
         val primaryKeyName = primaryKey.first
@@ -67,7 +67,7 @@ object JsonHelper {
         val tableRow = HashMap<String, String>().apply {
             putIfAbsent(primaryKeyName, primaryKeyValue)
             if (link != null) {
-                System.out.println("praseLink:$link")
+//                System.out.println("praseLink:$link")
                 putIfAbsent(JsonDBman.dblinks, link)
                 DBCache.collectCacheKeyPair(Pair(JsonDBman.dblinks, get(JsonDBman.dblinks) ?: ""))
             }
@@ -91,7 +91,7 @@ object JsonHelper {
         jsonElement: JsonElement,
         link: String? = null
     ): List<HashMap<String, HashMap<String, String>>> {
-//        System.out.println("praseJsonElement")
+        System.out.println("praseJsonElement")
         DBCache.collectCacheIfAbsent(jsonElement.toString(), tableName, elementName, link)
         val primaryKey = getPrimaryKey(tableName)
         val primaryKeyName = primaryKey.first
@@ -133,6 +133,7 @@ object JsonHelper {
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
+                System.out.println("praseJsonValue$value")
                 tableRow.put(elementName, value)
             }
         }
@@ -146,6 +147,7 @@ object JsonHelper {
         link: String? = null,
         key: Pair<String, String>? = null
     ): List<HashMap<String, HashMap<String, String>>> {
+        System.out.println("praseJsonArray")
         DBCache.collectCache(jsonArray.toString(), tableName, elementName, link)
         val primaryKey = getPrimaryKey(JsonDBman.dbarrays)
         val primaryKeyName = primaryKey.first
@@ -215,7 +217,7 @@ object JsonHelper {
         }
         val createTableSQL = "$createTable$coldef)"
         val insertIntoSQL = "$insertInto$cols) VALUES($vals)"
-        System.out.println(insertIntoSQL)
+//        System.out.println(insertIntoSQL)
         statement.execute(createTableSQL)
         fitTable(tableName, keys)
         statement.execute(insertIntoSQL)
@@ -284,7 +286,7 @@ object JsonHelper {
         if (isArray) {
             val k: String? = JsonDBman.dblinks
             val v: String? = testJsonObject.get(k).asString
-            System.out.println("检测数组link:$v\t数组字段:${k}")
+//            System.out.println("检测数组link:$v\t数组字段:${k}")
             jsonElement = getJsonArray(tableName, k, v)
             DBCache.collectCache(jsonElement.toString(), tableName, k, v)
             DBCache.collectCacheKeyPair(Pair(k ?: "", v ?: ""))

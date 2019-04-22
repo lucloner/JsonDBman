@@ -22,7 +22,7 @@ object DBHelper {
             DBCache.uncaughtExceptionHandler.clear()
             DBCache.uncaughtExceptionHandler.add(
                 Thread.UncaughtExceptionHandler { t, e ->
-                    System.out.println("getJsonSafe:${t.name}")
+                    //                    System.out.println("getJsonSafe:${t.name}")
                     e.printStackTrace()
                     if (e is LinkageError) {
                         DBCache.stop()
@@ -51,7 +51,7 @@ object DBHelper {
                         latest.put(value, it)
                     } catch (e: Exception) {
                         e.printStackTrace()
-                        System.out.println("没有找到关键字:$keys")
+//                        System.out.println("没有找到关键字:$keys")
                     }
                     is JsonArray -> {
                         val subArray = getLatestJsonArray(it, key)
