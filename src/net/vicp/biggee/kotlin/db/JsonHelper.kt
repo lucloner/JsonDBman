@@ -263,11 +263,15 @@ object JsonHelper {
 
     fun getJsonObject(tableName: String, key: String? = null, value: String? = null): JsonObject {
         var jsonObject = JsonObject()
-        val rs = loadFromDB(tableName, key, value)
-        if (rs.last()) {
-            jsonObject = getJsonFromRs(rs, tableName)
+        try {
+            val rs = loadFromDB(tableName, key, value)
+            if (rs.last()) {
+                jsonObject = getJsonFromRs(rs, tableName)
+            }
+            rs.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        rs.close()
         DBCache.collectCache(jsonObject.toString(), tableName, key, value)
         DBCache.collectCacheKeyPair(Pair(key ?: "", value ?: ""))
         return jsonObject
@@ -290,12 +294,16 @@ object JsonHelper {
 
     fun getJsonArray(tableName: String, key: String? = null, value: String? = null): JsonArray {
         val jsonArray = JsonArray()
-        val rs = loadFromDB(tableName, key, value)
-        while (rs.next()) {
-            val jsonObject = getJsonFromRs(rs, tableName)
-            jsonArray.add(jsonObject)
+        try {
+            val rs = loadFromDB(tableName, key, value)
+            while (rs.next()) {
+                val jsonObject = getJsonFromRs(rs, tableName)
+                jsonArray.add(jsonObject)
+            }
+            rs.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        rs.close()
         DBCache.collectCache(jsonArray.toString(), tableName, key, value)
         DBCache.collectCacheKeyPair(Pair(key ?: "", value ?: ""))
         return jsonArray
