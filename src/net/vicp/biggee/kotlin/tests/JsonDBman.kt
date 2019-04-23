@@ -68,15 +68,48 @@ private class JsonDBman {
     }
 
     fun t8() {
+        val now = System.currentTimeMillis()
         val strJson = File("/home/lucloner/source/hajava/SDKServerDemo/testjson").readText()
         val jsonElement = JsonParser().parse(strJson)
         val jsonArray = jsonElement.asJsonArray
         val jsonObject = jsonArray.first().asJsonObject
         println("测试输出:${strJson.length}\t${jsonObject["deviceNo"].asString}")
+//        val faces=jsonObject["faces"].asJsonArray
+//        val facesArray= JsonArray()
+//        faces.iterator().forEach {
+//            val facesObject=it.asJsonObject
+//            val bytesJson=facesObject["thumbImageData"].asJsonArray
+//            val bytesJsonCnt=it.toString().length
+//            val bytesCnt=bytesJson.size()
+//            println("总数组数量:$bytesCnt\t字符串长度:$bytesJsonCnt\t${bytesJsonCnt/bytesCnt}")
+//            val base64Array= JsonArray()
+//            bytesJson.forEach {
+//                val byteJson=it.toString().length
+//                val bytes= Gson().fromJson<ByteArray>(it,ByteArray::class.java)
+//                val byteCnt=bytes.size
+//                val base64= Base64.getEncoder().encodeToString(bytes)
+//                base64Array.add(base64)
+//                println("单个数组数量:$byteCnt\t字符串长度:$byteJson\t${byteJson/byteCnt}")
+//            }
+//
+//            facesObject.add("thumbImageData",base64Array)
+//            facesArray.add(facesObject)
+//        }
+//        jsonObject.add("faces",facesArray)
+        t1()
         JsonHelper.saveJsonToDB("t3again4", jsonObject)
+        println("耗时${System.currentTimeMillis() - now}ms")
+    }
+
+    fun t9() {
+        val now = System.currentTimeMillis()
+        t1()
+        val j = JsonHelper.getJsonObject("t3again4")
+        println("${j}耗时${System.currentTimeMillis() - now}ms")
     }
 }
 
 fun main(args: Array<String>) {
     net.vicp.biggee.kotlin.tests.JsonDBman().t8()
+    net.vicp.biggee.kotlin.tests.JsonDBman().t9()
 }

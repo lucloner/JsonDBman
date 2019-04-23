@@ -3,6 +3,7 @@ package net.vicp.biggee.kotlin.db
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
+import com.google.gson.JsonPrimitive
 import net.vicp.biggee.kotlin.conf.JsonDBman
 import net.vicp.biggee.kotlin.json.DBCache
 import java.sql.DriverManager
@@ -53,12 +54,26 @@ object JsonHelper {
         ).executeQuery("SELECT * FROM [${JsonDBman.dbarrays}]$whereSQL ")
     }
 
+    private fun praseJsonPrimitive(
+        tableRow: HashMap<String, String>,
+        elementName: String,
+        jsonPrimitive: JsonPrimitive
+    ): HashMap<String, String> {
+        var value = jsonPrimitive.toString()
+        try {
+            value = jsonPrimitive.asString
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return tableRow.apply { put(elementName, value) }
+    }
+
     private fun praseJsonObject(
         tableName: String,
         jsonObject: JsonObject,
         link: String? = null
     ): List<HashMap<String, HashMap<String, String>>> {
-        System.out.println("praseJsonObject${jsonObject.hashCode()}")
+        print("praseJsonObject:{${tableName}}")
         DBCache.collectCache(jsonObject.toString(), tableName, link)
         val primaryKey = getPrimaryKey(tableName)
         val primaryKeyName = primaryKey.first
@@ -67,7 +82,7 @@ object JsonHelper {
         val tableRow = HashMap<String, String>().apply {
             putIfAbsent(primaryKeyName, primaryKeyValue)
             if (link != null) {
-//                System.out.println("praseLink:$link")
+//                println("praseLink:$link")
                 putIfAbsent(JsonDBman.dblinks, link)
                 DBCache.collectCacheKeyPair(Pair(JsonDBman.dblinks, get(JsonDBman.dblinks) ?: ""))
             }
@@ -91,7 +106,7 @@ object JsonHelper {
         jsonElement: JsonElement,
         link: String? = null
     ): List<HashMap<String, HashMap<String, String>>> {
-        System.out.println("praseJsonElement")
+        print("praseJsonElement:($elementName)")
         DBCache.collectCacheIfAbsent(jsonElement.toString(), tableName, elementName, link)
         val primaryKey = getPrimaryKey(tableName)
         val primaryKeyName = primaryKey.first
@@ -117,15 +132,32 @@ object JsonHelper {
 
         when {
             jsonElement.isJsonObject -> records.addAll(praseJsonObject(elementName, jsonElement.asJsonObject, link))
-            jsonElement.isJsonArray -> records.addAll(
-                praseJsonArray(
-                    tableName,
-                    elementName,
-                    jsonElement.asJsonArray,
-                    primaryLinkValue,
-                    primaryKeyPair
+            jsonElement.isJsonArray -> {
+                var linkID = getLink(elementName).second
+                var jsonArray = jsonElement.asJsonArray
+                val arraryLength = jsonArray.size()
+                val jsonStr = jsonElement.toString()
+                val jsonLength = jsonStr.length
+                val perLength = jsonLength / arraryLength
+                if (perLength < 5) {
+                    linkID = getLink(elementName).second
+                    val base64 = Base64.getEncoder().encodeToString(jsonStr.toByteArray())
+                    val converted = "${JsonDBman.dbbase64}$base64"
+                    println("found long array!:$tableName\t$elementName\t$converted")
+                    jsonArray = JsonArray().apply {
+                        add(converted)
+                    }
+                }
+                records.addAll(
+                    praseJsonArray(
+                        tableName,
+                        elementName,
+                        jsonArray,
+                        linkID,
+                        primaryKeyPair
+                    )
                 )
-            )
+            }
             else -> {
                 var value = jsonElement.toString()
                 try {
@@ -133,7 +165,7 @@ object JsonHelper {
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
-                System.out.println("praseJsonValue$value")
+                println("praseJsonValue:$elementName\t$value")
                 tableRow.put(elementName, value)
             }
         }
@@ -147,7 +179,7 @@ object JsonHelper {
         link: String? = null,
         key: Pair<String, String>? = null
     ): List<HashMap<String, HashMap<String, String>>> {
-        System.out.println("praseJsonArray")
+        print("praseJsonArray:[$elementName]")
         DBCache.collectCache(jsonArray.toString(), tableName, elementName, link)
         val primaryKey = getPrimaryKey(JsonDBman.dbarrays)
         val primaryKeyName = primaryKey.first
@@ -187,11 +219,12 @@ object JsonHelper {
         DBCache.collectCacheKeyPair(keyValue)
         return keyValue
     }
+
     private fun getPrimaryKey(tableName: String) = getKey(tableName, "ID")
     private fun getLink(tableName: String) = getKey(tableName, "LINK")
 
     fun saveJsonToDB(tableName: String, jsonElement: JsonElement) {
-//        System.out.println("saveJsonToDB")
+//        println("saveJsonToDB")
         val missionList = initTable(tableName, jsonElement)
         missionList.iterator().forEach {
             it.iterator().forEach {
@@ -217,23 +250,30 @@ object JsonHelper {
         }
         val createTableSQL = "$createTable$coldef)"
         val insertIntoSQL = "$insertInto$cols) VALUES($vals)"
-//        System.out.println(insertIntoSQL)
+//        println(createTableSQL)
+//        println(insertIntoSQL)
         statement.execute(createTableSQL)
         fitTable(tableName, keys)
         statement.execute(insertIntoSQL)
     }
 
-    private fun fitTable(tableName: String, collist: Iterator<String>) {
+    private fun getColumns(tableName: String): Array<String> {
         val rs =
             statement.executeQuery("SELECT [COLUMN_NAME] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME]='$tableName'")
-        val newList = HashSet<String>().apply {
-            collist.forEach {
-                add(it)
+        val returnList = HashSet<String>().apply {
+            while (rs.next()) {
+                add(rs.getString("COLUMN_NAME"))
             }
         }
-        while (rs.next()) {
-            newList.remove(rs.getString("COLUMN_NAME"))
+        rs.close()
+        return returnList.toTypedArray()
+    }
+
+    private fun fitTable(tableName: String, collist: Iterator<String>) {
+        val newList = HashSet<String>().apply {
+            addAll(collist.asSequence())
         }
+        newList.removeAll(getColumns(tableName))
         val sqlTemplate = "ALTER TABLE [$tableName] ADD "
         var coldef = ""
         var commaStr = ""
@@ -242,7 +282,6 @@ object JsonHelper {
             commaStr = ","
         }
         val sql = "$sqlTemplate$coldef"
-        rs.close()
         if (newList.isEmpty()) {
             return
         }
@@ -286,7 +325,7 @@ object JsonHelper {
         if (isArray) {
             val k: String? = JsonDBman.dblinks
             val v: String? = testJsonObject.get(k).asString
-//            System.out.println("检测数组link:$v\t数组字段:${k}")
+//            println("检测数组link:$v\t数组字段:${k}")
             jsonElement = getJsonArray(tableName, k, v)
             DBCache.collectCache(jsonElement.toString(), tableName, k, v)
             DBCache.collectCacheKeyPair(Pair(k ?: "", v ?: ""))
@@ -316,7 +355,12 @@ object JsonHelper {
         val keyCnt = rs.metaData.columnCount
         for (index in 1..keyCnt) {
             val jsonKey = rs.metaData.getColumnName(index)
-            val jsonValue = rs.getString(index)
+            var jsonValue = rs.getString(index)
+            jsonValue ?: continue
+            if (jsonValue.startsWith(JsonDBman.dbbase64)) {
+                val base64orig = jsonValue.substring(JsonDBman.dbbase64.length)
+                jsonValue = Base64.getDecoder().decode(base64orig).toString()
+            }
             if (jsonKey.equals("${JsonDBman.dbprimarykey}_${tableName}_ID") || jsonKey.equals(JsonDBman.dblinks)) {
                 continue
             }
@@ -335,6 +379,7 @@ object JsonHelper {
         var k = key
         var v = value
         var whereSQL = " WHERE"
+        val cols = getColumns(tableName)
         if (value == null) {
             whereSQL = ""
         } else {
@@ -343,6 +388,11 @@ object JsonHelper {
                 v = "${JsonDBman.dbprimarykeyid}_$v"
             }
             whereSQL += " [$k]='$v'"
+        }
+        if (!cols.contains(k)) {
+            k = ""
+            v = ""
+            whereSQL = ""
         }
         DBCache.collectPath(Pair(tableName, k ?: ""))
         var sql = "SELECT * FROM [$tableName]$whereSQL"
