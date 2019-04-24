@@ -14,6 +14,8 @@ import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 
 object JsonHelper {
+    val cache_sql = ArrayList<String>()
+
     private val dbConn by lazy {
         Class.forName(JsonDBman.dbdriver)
         DriverManager.getConnection(JsonDBman.connStr)
@@ -35,10 +37,6 @@ object JsonHelper {
         return res
     }
 
-    private fun initTable(tableName: String, jsonElement: JsonElement): List<HashMap<String, HashMap<String, String>>> {
-        return praseJsonElement(tableName, HashMap(), tableName, jsonElement)
-    }
-
     private fun getArrayTable(linkID: String? = null): ResultSet {
         var whereSQL = " WHERE"
         if (linkID == null) {
@@ -54,167 +52,173 @@ object JsonHelper {
         ).executeQuery("SELECT * FROM [${JsonDBman.dbarrays}]$whereSQL ")
     }
 
-    private fun praseJsonPrimitive(
+    private fun praseJsonElement(
         tableRow: HashMap<String, String>,
         elementName: String,
-        jsonPrimitive: JsonPrimitive
+        jsonElement: JsonElement
     ): HashMap<String, String> {
+        print("E:($elementName)")
+        var returnRow = tableRow
+
+        when {
+            jsonElement.isJsonPrimitive -> {
+//                print("praseJsonElement:(JsonPrimitive)")
+                val jsonPrimitive = jsonElement.asJsonPrimitive
+                val tableData = praseJsonPrimitive(jsonPrimitive)
+                returnRow.put(elementName, tableData)
+            }
+            jsonElement.isJsonObject || jsonElement.isJsonArray -> {
+                val link = getLink(elementName)
+                returnRow.put(elementName, link.second)
+//                print("praseJsonElement:(JsonObject/JsonArray):${link.second}")
+            }
+            jsonElement.isJsonNull -> {
+//                print("praseJsonElement:(null)")
+            }
+            else -> {
+//                print("praseJsonElement:(else)")
+                val whateverElse = jsonElement.toString()
+                returnRow.put(elementName, whateverElse)
+            }
+        }
+        return returnRow
+    }
+
+    private fun praseJsonPrimitive(
+        jsonPrimitive: JsonPrimitive
+    ): String {
+        print("P")
         var value = jsonPrimitive.toString()
         try {
             value = jsonPrimitive.asString
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        return tableRow.apply { put(elementName, value) }
+        return value
     }
 
     private fun praseJsonObject(
         tableName: String,
         jsonObject: JsonObject,
-        link: String? = null
-    ): List<HashMap<String, HashMap<String, String>>> {
-        print("praseJsonObject:{${tableName}}")
-        DBCache.collectCache(jsonObject.toString(), tableName, link)
-        val primaryKey = getPrimaryKey(tableName)
-        val primaryKeyName = primaryKey.first
-        val primaryKeyValue = primaryKey.second
+        rowTemplate: HashMap<String, String>
+    ) {
+        print("O:{${tableName}}")
+        DBCache.collectCache(jsonObject.toString(), tableName)
+        val key = getPrimaryKey(tableName)
+        var tableRow = rowTemplate
+        tableRow.put(key.first, key.second)
 
-        val tableRow = HashMap<String, String>().apply {
-            putIfAbsent(primaryKeyName, primaryKeyValue)
-            if (link != null) {
-//                println("praseLink:$link")
-                putIfAbsent(JsonDBman.dblinks, link)
-                DBCache.collectCacheKeyPair(Pair(JsonDBman.dblinks, get(JsonDBman.dblinks) ?: ""))
-            }
-        }
-        val thisRecord = HashMap<String, HashMap<String, String>>().apply {
-            put(tableName, tableRow)
-        }
-        val records = ArrayList<HashMap<String, HashMap<String, String>>>().apply {
-            add(thisRecord)
-        }
         jsonObject.keySet().iterator().forEach {
-            records.addAll(praseJsonElement(tableName, tableRow, it, jsonObject[it], link))
-        }
-        return records
-    }
-
-    private fun praseJsonElement(
-        tableName: String,
-        tableRow: HashMap<String, String>,
-        elementName: String,
-        jsonElement: JsonElement,
-        link: String? = null
-    ): List<HashMap<String, HashMap<String, String>>> {
-        print("praseJsonElement:($elementName)")
-        DBCache.collectCacheIfAbsent(jsonElement.toString(), tableName, elementName, link)
-        val primaryKey = getPrimaryKey(tableName)
-        val primaryKeyName = primaryKey.first
-        val primaryKeyValue = if (tableRow.containsKey(primaryKeyName)) tableRow[primaryKeyName] else primaryKey.second
-        val primaryKeyPair = Pair(primaryKeyName, primaryKeyValue!!)
-        val primaryLink = getLink(elementName)
-        val primaryLinkName = if (link == null) elementName else JsonDBman.dblinks
-        val primaryLinkValue = if (link == null) primaryLink.second else link
-        val primaryLinkPair = Pair(primaryLinkName, primaryLinkValue)
-
-        val records = ArrayList<HashMap<String, HashMap<String, String>>>()
-
-        tableRow.apply {
-            put(elementName, primaryLinkValue)
-            putIfAbsent(primaryKeyPair.first, primaryKeyPair.second)
-            putIfAbsent(primaryLinkPair.first, primaryLinkPair.second)
-            DBCache.collectCacheKeyPair(
-                Pair(elementName, get(JsonDBman.dblinks) ?: ""),
-                Pair(primaryKeyPair.first, get(primaryKeyPair.first) ?: ""),
-                Pair(primaryLinkPair.first, get(primaryLinkPair.first) ?: "")
-            )
-        }
-
-        when {
-            jsonElement.isJsonObject -> records.addAll(praseJsonObject(elementName, jsonElement.asJsonObject, link))
-            jsonElement.isJsonArray -> {
-                var linkID = getLink(elementName).second
-                var jsonArray = jsonElement.asJsonArray
-                val arraryLength = jsonArray.size()
-                val jsonStr = jsonElement.toString()
-                val jsonLength = jsonStr.length
-                val perLength = jsonLength / arraryLength
-                if (perLength < 5) {
-                    linkID = getLink(elementName).second
-                    val base64 = Base64.getEncoder().encodeToString(jsonStr.toByteArray())
-                    val converted = "${JsonDBman.dbbase64}$base64"
-                    println("found long array!:$tableName\t$elementName\t$converted")
-                    jsonArray = JsonArray().apply {
-                        add(converted)
-                    }
-                }
-                records.addAll(
-                    praseJsonArray(
-                        tableName,
-                        elementName,
-                        jsonArray,
-                        linkID,
-                        primaryKeyPair
-                    )
-                )
+            val jsonElement = jsonObject[it]
+            tableRow = praseJsonElement(tableRow, it, jsonElement)
+            val subKey = getPrimaryKey(it)
+            val link = tableRow[it] //meight be
+            val subTableRow = HashMap<String, String>().apply {
+                put(subKey.first, subKey.second)
+                put(JsonDBman.dblinks, link!!)
             }
-            else -> {
-                var value = jsonElement.toString()
-                try {
-                    value = jsonElement.asString
-                } catch (e: Exception) {
-                    e.printStackTrace()
+
+            val sql = "LEFT JOIN [$it] ON [$tableName].[$it]=[$it].[${JsonDBman.dblinks}]"
+            when {
+                jsonElement.isJsonObject -> {
+                    val subJsonObject = jsonElement.asJsonObject
+                    praseJsonObject(it, subJsonObject, subTableRow)
+                    cache_sql.add(sql)
                 }
-                println("praseJsonValue:$elementName\t$value")
-                tableRow.put(elementName, value)
+                jsonElement.isJsonArray -> {
+                    val subJsonArray = jsonElement.asJsonArray
+                    praseJsonArray(subJsonArray, it, link)
+                    cache_sql.add(sql)
+                }
             }
         }
-        return records
+        saveToDB(tableName, tableRow)
+        println("_O:{${tableName}}")
     }
 
     private fun praseJsonArray(
-        tableName: String,
-        elementName: String,
         jsonArray: JsonArray,
-        link: String? = null,
-        key: Pair<String, String>? = null
-    ): List<HashMap<String, HashMap<String, String>>> {
-        print("praseJsonArray:[$elementName]")
-        DBCache.collectCache(jsonArray.toString(), tableName, elementName, link)
-        val primaryKey = getPrimaryKey(JsonDBman.dbarrays)
-        val primaryKeyName = primaryKey.first
-        val primaryKeyValue = primaryKey.second
-        val primaryLink = getLink(elementName)
-//        val primaryLinkName = JsonDBman.dblinks
-        val primaryLinkValue = if (link == null) primaryLink.second else link
-        val records = ArrayList<HashMap<String, HashMap<String, String>>>()
-        val tableRow = HashMap<String, String>()
+        elementName: String? = "",
+        link: String? = ""
+    ) {
+        print("A:[${jsonArray.size()},$elementName,$link]")
+        //注册数组
+        val linkTableKey = getPrimaryKey(JsonDBman.dblinkheader)
+        val linkTableRow = HashMap<String, String>().apply {
+            put(linkTableKey.first, linkTableKey.second)
+            put("key", elementName!!)
+            put("link", link!!)
+        }
+        var sql =
+            "LEFT JOIN [${JsonDBman.dblinkheader}] ON [${JsonDBman.dblinkheader}].[${JsonDBman.dblinks}]=[$elementName].[${JsonDBman.dblinks}]"
+        cache_sql.add(sql)
 
-        val arrayTableRow = HashMap<String, String>().apply {
-            put(primaryKeyName, primaryKeyValue)
-            put(JsonDBman.dbprimarykey, key!!.second)
-            put(JsonDBman.dblinks, primaryLinkValue)
-            put(JsonDBman.dbarrays, elementName)
-            DBCache.collectCacheKeyPair(
-                key,
-                Pair(JsonDBman.dbprimarykey, get(JsonDBman.dbprimarykey) ?: ""),
-                Pair(JsonDBman.dblinks, get(JsonDBman.dblinks) ?: ""),
-                Pair(JsonDBman.dbarrays, get(JsonDBman.dbarrays) ?: "")
-            )
+        //创建表模板
+        val key = getPrimaryKey(elementName!!)
+        val tableRow = HashMap<String, String>().apply {
+            put(key.first, key.second)
+            put(JsonDBman.dblinks, link!!)
         }
-        val arrayTable = HashMap<String, HashMap<String, String>>().apply {
-            put(JsonDBman.dbarrays, arrayTableRow)
+
+        //处理矩阵
+        val arrayLength = jsonArray.size()
+        val jsonString = jsonArray.toString()
+        val jsonLength = jsonString.length
+        val ratio = jsonLength / arrayLength
+        if (ratio < 5) {
+            val base64 = Base64.getEncoder().encodeToString(jsonString.toByteArray())
+            linkTableRow.put("${JsonDBman.dblinkheader}_value", base64)
+            saveToDB(JsonDBman.dblinkheader, linkTableRow)
+            println("!B!")
+
+            return
         }
-        records.add(arrayTable)
+        saveToDB(JsonDBman.dblinkheader, linkTableRow)
+
+        //遍历数组
+        val subElementName = "${JsonDBman.dbprimarykey}_$elementName"
         jsonArray.iterator().forEach {
-            records.addAll(praseJsonElement(tableName, tableRow, elementName, it, link))
+            //获得值
+            val thisTableRow = praseJsonElement(tableRow, elementName, it)
+
+            //预处理
+            val subKey = getPrimaryKey(subElementName)
+            val subTableRow = HashMap<String, String>().apply {
+                put(subKey.first, subKey.second)
+                put(JsonDBman.dblinks, link!!)
+            }
+            sql =
+                "LEFT JOIN [$subElementName] ON [${JsonDBman.dblinkheader}].[${JsonDBman.dblinks}]=[$subElementName].[${JsonDBman.dblinks}]"
+            when {
+                it.isJsonArray -> {
+                    val subJsonArray = it.asJsonArray
+                    tableRow.put(elementName, link!!)
+                    praseJsonArray(subJsonArray, subElementName, link)
+                    cache_sql.add(sql)
+                }
+                it.isJsonObject -> {
+                    val subJsonObject = it.asJsonObject
+                    tableRow.put(elementName, link!!)
+                    praseJsonObject(subElementName, subJsonObject, subTableRow)
+                    cache_sql.add(sql)
+                }
+                else -> {
+                    //其他处理
+                }
+            }
+
+            //保存表
+            saveToDB(elementName, thisTableRow)
+            sql =
+                "LEFT JOIN [$elementName] ON [${JsonDBman.dblinkheader}].[${JsonDBman.dblinks}]=[$elementName].[${JsonDBman.dblinks}]"
+            cache_sql.add(sql)
         }
-        return records
+
     }
 
     private fun getKey(tableName: String, mode: String): Pair<String, String> {
         val primaryKey = "${JsonDBman.dbprimarykey}_${tableName}_$mode"
-        val primaryKeyValue = "${JsonDBman.dbprimarykeyid}_ID_${UUID.randomUUID()}_${System.currentTimeMillis()}"
+        val primaryKeyValue = "${JsonDBman.dbprimarykeyid}_${UUID.randomUUID()}_${System.currentTimeMillis()}"
         val keyValue = Pair(primaryKey, primaryKeyValue)
         DBCache.collectCacheKeyPair(keyValue)
         return keyValue
@@ -223,13 +227,18 @@ object JsonHelper {
     private fun getPrimaryKey(tableName: String) = getKey(tableName, "ID")
     private fun getLink(tableName: String) = getKey(tableName, "LINK")
 
-    fun saveJsonToDB(tableName: String, jsonElement: JsonElement) {
-//        println("saveJsonToDB")
-        val missionList = initTable(tableName, jsonElement)
-        missionList.iterator().forEach {
-            it.iterator().forEach {
-                saveToDB(it.key, it.value)
-            }
+    fun saveJsonToDB(tableName: String, jsonObject: JsonObject) {
+        val key = getPrimaryKey(tableName)
+        val tableRow = HashMap<String, String>().apply {
+            put(key.first, key.second)
+            put(JsonDBman.dbprimarykey, "${JsonDBman.thisname}_root")
+        }
+        var sql = "SELECT * FROM [$tableName] WHERE [$tableName].[${key.first}]='${key.second}'"
+        cache_sql.clear()
+        cache_sql.add(sql)
+        praseJsonObject(tableName, jsonObject, tableRow)
+        cache_sql.iterator().forEach {
+            println(it)
         }
     }
 
@@ -241,8 +250,8 @@ object JsonHelper {
         var cols = ""
         var vals = ""
         var commaStr = ""
-        val keys = tableData.keys.iterator()
-        keys.forEach {
+        val keys = tableData.keys
+        keys.iterator().forEach {
             coldef += "$commaStr[$it] [varchar](max)"
             cols += "$commaStr[$it]"
             vals += "$commaStr'${tableData[it]}'"
@@ -269,9 +278,9 @@ object JsonHelper {
         return returnList.toTypedArray()
     }
 
-    private fun fitTable(tableName: String, collist: Iterator<String>) {
+    private fun fitTable(tableName: String, collist: Set<String>) {
         val newList = HashSet<String>().apply {
-            addAll(collist.asSequence())
+            addAll(collist)
         }
         newList.removeAll(getColumns(tableName))
         val sqlTemplate = "ALTER TABLE [$tableName] ADD "
