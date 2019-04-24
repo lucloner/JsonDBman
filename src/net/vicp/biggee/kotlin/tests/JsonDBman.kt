@@ -110,6 +110,6 @@ private class JsonDBman {
 }
 
 fun main(args: Array<String>) {
-    net.vicp.biggee.kotlin.tests.JsonDBman().t8()
-//    net.vicp.biggee.kotlin.tests.JsonDBman().t9()
+//    net.vicp.biggee.kotlin.tests.JsonDBman().t8()
+    net.vicp.biggee.kotlin.tests.JsonDBman().t9()
 }
