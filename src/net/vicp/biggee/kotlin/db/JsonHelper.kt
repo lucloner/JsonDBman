@@ -39,7 +39,7 @@ object JsonHelper {
         elementName: String,
         jsonElement: JsonElement
     ): HashMap<String, String> {
-        print("E:($elementName)")
+        //print("E:($elementName)")
         val returnRow = tableRow
 
         when {
@@ -53,7 +53,7 @@ object JsonHelper {
                 returnRow.put(elementName, link.second)
             }
             jsonElement.isJsonNull -> {
-                print("E:(null)")
+                //print("E:(null)")
             }
             else -> {
                 val whateverElse = jsonElement.toString()
@@ -66,7 +66,7 @@ object JsonHelper {
     private fun praseJsonPrimitive(
         jsonPrimitive: JsonPrimitive
     ): String {
-        print("P")
+        //print("P")
         var value = jsonPrimitive.toString()
         try {
             value = jsonPrimitive.asString
@@ -81,7 +81,7 @@ object JsonHelper {
         jsonObject: JsonObject,
         rowTemplate: HashMap<String, String>
     ) {
-        print("O:{${tableName}}")
+        //print("O:{${tableName}}")
         val key = getPrimaryKey(tableName)
         DBCache.collectCache(jsonObject.toString(), tableName)
         DBCache.collectCacheKeyPair(key)
@@ -116,7 +116,7 @@ object JsonHelper {
             }
         }
         saveToDB(tableName, tableRow)
-        println("_O:{${tableName}}")
+        //println("_O:{${tableName}}")
         cache_tabnames.add(tableName)
     }
 
@@ -125,7 +125,7 @@ object JsonHelper {
         elementName: String = "${JsonDBman.dbname}_${JsonDBman.thisname}",
         link: String = ""
     ) {
-        print("A:[${jsonArray.size()},$elementName,$link]")
+        //print("A:[${jsonArray.size()},$elementName,$link]")
 
         //注册数组
         val linkTableKey = getPrimaryKey(JsonDBman.dblinkheader)
@@ -157,7 +157,7 @@ object JsonHelper {
             val base64 = Base64.getEncoder().encodeToString(jsonString.toByteArray())
             linkTableRow.put("${JsonDBman.dblinkheader}_value", base64)
             saveToDB(JsonDBman.dblinkheader, linkTableRow)
-            println("!B!")
+            //println("!B!")
             cache_tabnames.add("${JsonDBman.dblinkheader}_base64")
             return
         }
@@ -327,17 +327,17 @@ object JsonHelper {
     }
 
     fun getJsonElement(tableName: String, data: Map.Entry<String, String>): JsonElement? {
-        print("e:${data.key}:")
+        //print("e:${data.key}:")
         val jsonKey = data.key
         val jsonValue = data.value
         DBCache.collectCacheKeyPair(Pair(jsonKey, jsonValue))
         when {
             jsonKey.equals(getPrimaryKey(tableName).first) || jsonKey.equals(JsonDBman.dblinks) -> {
-                print("%keyID%$jsonKey%")
+                //print("%keyID%$jsonKey%")
                 return null
             }
             jsonKey.equals(JsonDBman.dbarrays) -> {
-                print("%arrayID%$jsonKey%")
+                //print("%arrayID%$jsonKey%")
                 return null
             }
             jsonValue.startsWith(JsonDBman.dbprimarykeyid) -> {
@@ -362,7 +362,7 @@ object JsonHelper {
     }
 
     fun getJsonObject(tableName: String, key: String? = null, value: String? = null): JsonObject {
-        print("o($tableName)")
+        //print("o($tableName)")
         val jsonObject = JsonObject()
         try {
             val rs = loadFromDB(tableName, key, value)
@@ -380,12 +380,12 @@ object JsonHelper {
         }
         DBCache.collectCache(jsonObject.toString(), tableName, key, value)
         DBCache.collectCacheKeyPair(Pair(key ?: "", value ?: ""))
-        println("_o($tableName)")
+        //println("_o($tableName)")
         return jsonObject
     }
 
     fun getJsonArray(tableName: String, key: String? = null, value: String? = null): JsonArray {
-        print("a[$tableName]")
+        //print("a[$tableName]")
         val jsonArray = JsonArray()
         try {
             val rs = loadFromDB(tableName, key, value)
@@ -411,7 +411,7 @@ object JsonHelper {
     }
 
     private fun getMapFromRs(rs: ResultSet, tableName: String = ""): Map<String, String> {
-        print("R{$tableName}")
+        //print("R{$tableName}")
         val keyCnt = rs.metaData.columnCount
         val data = HashMap<String, String>()
         for (index in 1..keyCnt) {

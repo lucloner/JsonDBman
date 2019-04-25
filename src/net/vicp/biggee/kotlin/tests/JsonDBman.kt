@@ -73,7 +73,7 @@ private class JsonDBman {
         val jsonElement = JsonParser().parse(strJson)
         val jsonArray = jsonElement.asJsonArray
         val jsonObject = jsonArray.first().asJsonObject
-        println("测试输出:${strJson.length}\t${jsonObject["deviceNo"].asString}")
+        //println("测试输出:${strJson.length}\t${jsonObject["deviceNo"].asString}")
 //        val faces=jsonObject["faces"].asJsonArray
 //        val facesArray= JsonArray()
 //        faces.iterator().forEach {
@@ -98,14 +98,14 @@ private class JsonDBman {
 //        jsonObject.add("faces",facesArray)
         t1()
         JsonHelper.saveJsonToDB("t3again4", jsonObject)
-        println("耗时${System.currentTimeMillis() - now}ms")
+        //println("耗时${System.currentTimeMillis() - now}ms")
     }
 
     fun t9() {
         val now = System.currentTimeMillis()
         t1()
         val j = JsonHelper.getJsonObject("t3again4")
-        println("\n长度:${j.size()}\t${j.toString().length}\t耗时${System.currentTimeMillis() - now}ms")
+        //println("\n长度:${j.size()}\t${j.toString().length}\t耗时${System.currentTimeMillis() - now}ms")
     }
 
     fun t10() {
@@ -119,7 +119,7 @@ private class JsonDBman {
         val jsonElement = JsonParser().parse(strJson)
         val jsonArray = jsonElement.asJsonArray
         val jsonObject = jsonArray.first().asJsonObject
-        println("\n测试输出:${strJson.length}\t${jsonObject.size()}")
+        //println("\n测试输出:${strJson.length}\t${jsonObject.size()}")
     }
 }
 
