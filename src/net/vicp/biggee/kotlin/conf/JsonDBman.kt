@@ -19,7 +19,6 @@ object JsonDBman {
         "dbprimarykeyid",
         "dblinks",
         "dblinkheader",
-        "dbbase64",
         "connStr"
     )
     var tag = "JsonDBmanTAGS"
@@ -37,7 +36,6 @@ object JsonDBman {
     var dbprimarykeyid = "${thisname}_${tag}_ID"
     var dblinks = "${thisname}_${tag}_LINKS"
     var dblinkheader = "${dbprimarykeyid}_HEAD"
-    var dbbase64 = "${JsonDBman.tag}/base64:"
     val connStr by lazy {
         if (dbdriver.isEmpty() || dbprot.isEmpty() || dbip.isEmpty() || dbname.isEmpty() || dbuser.isEmpty() || dbpass.isEmpty()) {
             throw NullPointerException("${thisname}_init_Empty")
