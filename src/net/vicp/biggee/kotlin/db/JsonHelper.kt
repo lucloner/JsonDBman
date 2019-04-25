@@ -367,7 +367,7 @@ object JsonHelper {
         try {
             val rs = loadFromDB(tableName, key, value)
             if (rs.last()) {
-                getMapFromRs(rs, tableName).iterator().forEach {
+                getMapFromRs(rs).iterator().forEach {
                     val jsonElement = getJsonElement(tableName, it)
                     if (jsonElement != null) {
                         jsonObject.add(it.key, jsonElement)
@@ -391,7 +391,7 @@ object JsonHelper {
             val rs = loadFromDB(tableName, key, value)
             while (rs.next()) {
                 val jsonObject = JsonObject()
-                getMapFromRs(rs, tableName).iterator().forEach {
+                getMapFromRs(rs).iterator().forEach {
                     val jsonElement = getJsonElement(tableName, it)
                     if (jsonElement != null) {
                         jsonObject.add(it.key, jsonElement)
@@ -410,7 +410,7 @@ object JsonHelper {
         return jsonArray
     }
 
-    private fun getMapFromRs(rs: ResultSet, tableName: String = ""): Map<String, String> {
+    private fun getMapFromRs(rs: ResultSet): Map<String, String> {
         //print("R{$tableName}")
         val keyCnt = rs.metaData.columnCount
         val data = HashMap<String, String>()
