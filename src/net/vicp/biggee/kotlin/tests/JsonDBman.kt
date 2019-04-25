@@ -34,9 +34,9 @@ private class JsonDBman {
     fun t4() {
         JsonDBman.dbname = "JT1"
         t1()
-        val jsonElement = JsonHelper.getJsonElement(
-            "t3again4"
-        )
+//        val jsonElement = JsonHelper.getJsonElement(
+//            "t3again4"
+//        )
 //        System.out.println(jsonElement.toString())
 //        System.out.println(jsonElement.asJsonArray.size())
     }
@@ -105,11 +105,28 @@ private class JsonDBman {
         val now = System.currentTimeMillis()
         t1()
         val j = JsonHelper.getJsonObject("t3again4")
-        println("${j}耗时${System.currentTimeMillis() - now}ms")
+        println("\n长度:${j.size()}\t${j.toString().length}\t耗时${System.currentTimeMillis() - now}ms")
+    }
+
+    fun t10() {
+        t1()
+        JsonHelper.statement.execute("USE [master] DROP DATABASE [${JsonDBman.dbname}]")
+
+    }
+
+    fun t11() {
+        val strJson = File("/home/lucloner/source/hajava/SDKServerDemo/testjson").readText()
+        val jsonElement = JsonParser().parse(strJson)
+        val jsonArray = jsonElement.asJsonArray
+        val jsonObject = jsonArray.first().asJsonObject
+        println("\n测试输出:${strJson.length}\t${jsonObject.size()}")
     }
 }
 
 fun main(args: Array<String>) {
+//    net.vicp.biggee.kotlin.tests.JsonDBman().t10()
 //    net.vicp.biggee.kotlin.tests.JsonDBman().t8()
     net.vicp.biggee.kotlin.tests.JsonDBman().t9()
+
+    net.vicp.biggee.kotlin.tests.JsonDBman().t11()
 }
