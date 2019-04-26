@@ -133,12 +133,23 @@ object DBCache : Thread.UncaughtExceptionHandler {
         return returnJsonObject
     }
 
+    fun overwriteJson(vararg jsonObject: JsonObject): JsonObject {
+        val returnJsonObject = jsonObject[0]
+        jsonObject.iterator().forEach {
+            val thisJson = it
+            thisJson.keySet().iterator().forEach {
+                returnJsonObject.add(it, thisJson[it])
+            }
+        }
+        return returnJsonObject
+    }
+
     fun mergJson(vararg jsonObject: JsonObject): JsonObject {
         val returnJsonObject = jsonObject[0]
         jsonObject.iterator().forEach {
             val thisJson = it
             thisJson.keySet().iterator().forEach {
-                if (!returnJsonObject.keySet().contains(it)) {
+                if (!returnJsonObject.has(it)) {
                     returnJsonObject.add(it, thisJson[it])
                 }
             }
