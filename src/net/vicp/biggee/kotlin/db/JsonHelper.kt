@@ -12,7 +12,7 @@ import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 
 object JsonHelper {
-    val saveingThread = Executors.newSingleThreadExecutor()
+    private val saveingThread = Executors.newSingleThreadExecutor()
     val cache_tabnames = ArrayList<String>()
 
     private val dbConn by lazy {
