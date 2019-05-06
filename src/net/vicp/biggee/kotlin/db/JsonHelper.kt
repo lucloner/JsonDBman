@@ -6,11 +6,13 @@ import net.vicp.biggee.kotlin.json.DBCache
 import java.sql.DriverManager
 import java.sql.ResultSet
 import java.util.*
+import java.util.concurrent.Executors
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 
 object JsonHelper {
+    val saveingThread = Executors.newSingleThreadExecutor()
     val cache_tabnames = ArrayList<String>()
 
     private val dbConn by lazy {
@@ -275,14 +277,20 @@ object JsonHelper {
         val insertIntoSQL = "$insertInto$cols) VALUES($vals)"
 //        println(createTableSQL)
 //        println(insertIntoSQL)
-        statement.execute(createTableSQL)
-        fitTable(tableName, keys)
-        statement.execute(insertIntoSQL)
+        saveingThread.execute {
+            statement.execute(createTableSQL)
+            fitTable(tableName, keys)
+            statement.execute(insertIntoSQL)
+        }
     }
 
     private fun getColumns(tableName: String): Array<String> {
         val rs =
-            statement.executeQuery("SELECT [COLUMN_NAME] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME]='$tableName'")
+            dbConn.createStatement(
+                ResultSet.TYPE_SCROLL_INSENSITIVE,
+                ResultSet.CONCUR_READ_ONLY,
+                ResultSet.HOLD_CURSORS_OVER_COMMIT
+            ).executeQuery("SELECT [COLUMN_NAME] FROM [INFORMATION_SCHEMA].[COLUMNS] WHERE [TABLE_NAME]='$tableName'")
         val returnList = HashSet<String>().apply {
             while (rs.next()) {
                 add(rs.getString("COLUMN_NAME"))
