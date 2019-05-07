@@ -21,7 +21,7 @@ object DBHelper {
         }.apply {
             DBCache.uncaughtExceptionHandler.clear()
             DBCache.uncaughtExceptionHandler.add(
-                Thread.UncaughtExceptionHandler { t, e ->
+                Thread.UncaughtExceptionHandler { _, e ->
                     //                    System.out.println("getJsonSafe:${t.name}")
                     e.printStackTrace()
                     if (e is LinkageError) {
