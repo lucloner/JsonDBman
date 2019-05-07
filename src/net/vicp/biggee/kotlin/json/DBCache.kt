@@ -1,5 +1,6 @@
 package net.vicp.biggee.kotlin.json
 
+import com.google.gson.Gson
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
@@ -206,7 +207,7 @@ object DBCache : Thread.UncaughtExceptionHandler {
             }
         }
 //        System.out.println("not found $key")
-        return JsonObject().asJsonNull
+        return JsonParser().parse(Gson().toJson(null))
     }
 
 }
