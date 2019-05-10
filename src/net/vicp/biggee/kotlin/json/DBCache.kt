@@ -46,62 +46,62 @@ object DBCache : Thread.UncaughtExceptionHandler {
     }
 
     fun collectPath(vararg paths: Pair<String, String>) {
-        Thread {
-            paths.iterator().forEach {
-                if (cache_tableNjson.containsKey(it.first)) {
-                    Thread {
-                        if (cache_loadDBpath[it.first].equals(it.second)) {
-                            throw LinkageError("table name&column catched")
-                        }
-                        throw LinkageError("table name catched")
-                    }.apply {
-                        uncaughtExceptionHandler = this@DBCache
-                        start()
-                    }
-                }
-                cache_loadDBpath.put(it.first, it.second)
-            }
-        }.start()
+//        Thread {
+//            paths.iterator().forEach {
+//                if (cache_tableNjson.containsKey(it.first)) {
+//                    Thread {
+//                        if (cache_loadDBpath[it.first].equals(it.second)) {
+//                            throw LinkageError("table name&column catched")
+//                        }
+//                        throw LinkageError("table name catched")
+//                    }.apply {
+//                        uncaughtExceptionHandler = this@DBCache
+//                        start()
+//                    }
+//                }
+//                cache_loadDBpath.put(it.first, it.second)
+//            }
+//        }.start()
     }
 
     fun collectCache(json: String, table: String? = null, vararg key: String?) {
-        Thread {
-            cache_tableNjson.put(table ?: "", json)
-            key.iterator().forEach {
-                cache_keyNjson.put(it ?: "", json)
-            }
-            collectJsonElement(json)
-        }.start()
+//        Thread {
+//            cache_tableNjson.put(table ?: "", json)
+//            key.iterator().forEach {
+//                cache_keyNjson.put(it ?: "", json)
+//            }
+//            collectJsonElement(json)
+//        }.start()
     }
 
     fun collectCacheIfAbsent(json: String, table: String? = null, vararg key: String?) {
-        Thread {
-            cache_tableNjson.putIfAbsent(table ?: "", json)
-            key.iterator().forEach {
-                cache_keyNjson.putIfAbsent(it ?: "", json)
-            }
-            collectJsonElement(json)
-        }.start()
+//        Thread {
+//            cache_tableNjson.putIfAbsent(table ?: "", json)
+//            key.iterator().forEach {
+//                cache_keyNjson.putIfAbsent(it ?: "", json)
+//            }
+//            collectJsonElement(json)
+//        }.start()
     }
 
     fun collectCacheKeyPair(vararg pair: Pair<String, String>?) {
-        Thread {
-            pair.iterator().forEach {
-                if (it != null) {
-                    cache_idNlink.put(it.first, it.second)
-                }
-            }
-        }.start()
+//        Thread {
+//            pair.iterator().forEach {
+//                if (it != null) {
+//                    cache_idNlink.put(it.first, it.second)
+//                }
+//            }
+//        }.start()
     }
 
     fun collectJsonElement(json: String) {
-        Thread {
-            val jsonElement = JsonParser().parse(json)
-            when {
-                jsonElement.isJsonObject -> cache_json.add(json)
-                jsonElement.isJsonArray -> cache_jsonArray.add(json)
-            }
-        }.start()
+//        Thread {
+//            val jsonElement = JsonParser().parse(json)
+//            when {
+//                jsonElement.isJsonObject -> cache_json.add(json)
+//                jsonElement.isJsonArray -> cache_jsonArray.add(json)
+//            }
+//        }.start()
     }
 
     fun fillJson(jsonObject: JsonObject, vararg availableKey: String?): JsonObject {
