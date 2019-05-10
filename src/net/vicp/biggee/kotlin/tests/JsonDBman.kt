@@ -18,5 +18,5 @@ private class JsonDBman {
 }
 
 fun main(args: Array<String>) {
-    net.vicp.biggee.kotlin.tests.JsonDBman().demo()
+//    net.vicp.biggee.kotlin.tests.JsonDBman().demo()
 }

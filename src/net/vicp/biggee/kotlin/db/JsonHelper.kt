@@ -369,12 +369,18 @@ object JsonHelper {
         }
     }
 
-    fun getJsonObject(tableName: String, key: String? = null, value: String? = null): JsonObject {
+    fun getJsonObject(tableName: String, key: String? = null, value: String? = null, lastIndexOf: Int = 0): JsonObject {
         //print("o($tableName)")
         val jsonObject = JsonObject()
         try {
             val rs = loadFromDB(tableName, key, value)
             if (rs.last()) {
+                for (i in 0 until lastIndexOf) {
+                    if (rs.isFirst || rs.isBeforeFirst || !rs.previous()) {
+                        rs.first()
+                        break
+                    }
+                }
                 getMapFromRs(rs).iterator().forEach {
                     val jsonElement = getJsonElement(tableName, it)
                     if (jsonElement != null) {
@@ -392,12 +398,21 @@ object JsonHelper {
         return jsonObject
     }
 
-    fun getJsonArray(tableName: String, key: String? = null, value: String? = null): JsonArray {
+    fun getJsonArray(
+        tableName: String,
+        key: String? = null,
+        value: String? = null,
+        indexRange: LongRange = 0..Long.MAX_VALUE
+    ): JsonArray {
         //print("a[$tableName]")
         val jsonArray = JsonArray()
         try {
             val rs = loadFromDB(tableName, key, value)
+            var cnt: Long = 0L
             while (rs.next()) {
+                if (!(cnt++ in indexRange)) {
+                    break
+                }
                 val jsonObject = JsonObject()
                 getMapFromRs(rs).iterator().forEach {
                     val jsonElement = getJsonElement(tableName, it)
