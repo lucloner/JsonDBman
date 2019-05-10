@@ -433,6 +433,27 @@ object JsonHelper {
         return jsonArray
     }
 
+    fun getLastJsonArray(
+        tableName: String,
+        key: String? = null,
+        value: String? = null,
+        lastIndexRange: LongRange = 0..Long.MAX_VALUE
+    ): JsonArray {
+        try {
+            val rs = JsonHelper.loadFromDB(tableName, key, value)
+            if (!rs.last()) {
+                throw NullPointerException("dbEmpty")
+            }
+            val size = rs.row
+            val range = size - lastIndexRange.endInclusive..size - lastIndexRange.start
+            rs.close()
+            return getJsonArray(tableName, key, value, range)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return getJsonArray(tableName, key, value)
+    }
+
     private fun getMapFromRs(rs: ResultSet): Map<String, String> {
         //print("R{$tableName}")
         val keyCnt = rs.metaData.columnCount
