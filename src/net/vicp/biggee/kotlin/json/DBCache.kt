@@ -15,6 +15,10 @@ object DBCache : Thread.UncaughtExceptionHandler {
     val cache_jsonArray = HashSet<String>()
     val cache_loadDBpath = HashMap<String, String>()
 
+    init {
+
+    }
+
     /**
      * Method invoked when the given thread terminates due to the
      * given uncaught exception.
