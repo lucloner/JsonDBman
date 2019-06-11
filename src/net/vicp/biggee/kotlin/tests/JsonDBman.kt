@@ -3,6 +3,7 @@ package net.vicp.biggee.kotlin.tests
 import com.google.gson.JsonParser
 import net.vicp.biggee.kotlin.conf.JsonDBman
 import net.vicp.biggee.kotlin.db.JsonHelper
+import java.sql.DriverManager
 
 private class JsonDBman {
     val json =
@@ -19,4 +20,12 @@ private class JsonDBman {
 
 fun main(args: Array<String>) {
 //    net.vicp.biggee.kotlin.tests.JsonDBman().demo()
+    Class.forName(JsonDBman.dbdriver)
+    DriverManager.getConnection("jdbc:jtds:sqlserver://10.88.88.15;user=sa;password=haosql").apply {
+        println(metaData)
+        println(metaData.databaseProductName)
+        println(metaData.databaseProductVersion)
+        println(metaData.databaseMajorVersion)
+        println(metaData.databaseMinorVersion)
+    }
 }

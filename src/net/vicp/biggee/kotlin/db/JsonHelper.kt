@@ -27,9 +27,12 @@ object JsonHelper {
         var res = false
         try {
             Class.forName(JsonDBman.dbdriver)
-            DriverManager.getConnection(connString).createStatement()
-                .execute("IF NOT EXISTS (SELECT * FROM [sysdatabases] WHERE [name]='$DBName') CREATE DATABASE [$DBName] COLLATE  Chinese_PRC_CS_AS")
-            res = true
+            val conn = DriverManager.getConnection(connString)
+            if (conn.metaData.databaseProductName == "Microsoft SQL Server") {
+                conn.createStatement()
+                    .execute("IF NOT EXISTS (SELECT * FROM [master].[dbo].[sysdatabases] WHERE [name]='$DBName') CREATE DATABASE [$DBName] COLLATE  Chinese_PRC_CS_AS")
+                res = true
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
