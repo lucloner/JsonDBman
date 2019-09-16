@@ -5,6 +5,7 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 
+@Deprecated("未完工")
 object DBCache : Thread.UncaughtExceptionHandler {
     private var stopflag = false
     val uncaughtExceptionHandler = HashSet<Thread.UncaughtExceptionHandler>()
