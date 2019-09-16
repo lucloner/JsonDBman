@@ -3,6 +3,7 @@ package net.vicp.biggee.kotlin.db
 import com.google.gson.*
 import net.vicp.biggee.kotlin.conf.JsonDBman
 import net.vicp.biggee.kotlin.json.DBCache
+import org.apache.commons.codec.binary.Base64
 import java.sql.DriverManager
 import java.sql.ResultSet
 import java.util.*
@@ -183,7 +184,7 @@ class JsonHelper(val jsonDBman: JsonDBman) {
         val jsonLength = jsonString.length
         val ratio = jsonLength / arrayLength
         if (ratio < 5 || !jsonArray.first().isJsonObject) {
-            val base64 = Base64.getEncoder().encodeToString(jsonString.toByteArray())
+            val base64 = Base64.encodeBase64String(jsonString.toByteArray())
             linkTableRow.put("${jsonDBman.dblinkheader}_value", base64)
             saveToDB(jsonDBman.dblinkheader, linkTableRow)
             //println("!B!")
@@ -385,7 +386,7 @@ class JsonHelper(val jsonDBman: JsonDBman) {
                     val arrayValue: String? = arrayTable.getString("${jsonDBman.dblinkheader}_value")
                     if (arrayValue != null && arrayValue.isNotBlank()) {
                         val base64Value = arrayTable.getString("${jsonDBman.dblinkheader}_value")
-                        val base64 = String(Base64.getDecoder().decode(base64Value))
+                        val base64 = String(Base64.decodeBase64(base64Value))
                         val jsonElement = JsonParser().parse(base64)
                         return jsonElement
                     }
@@ -518,7 +519,7 @@ class JsonHelper(val jsonDBman: JsonDBman) {
             whereSQL = ""
         }
         DBCache.collectPath(Pair(tableName, k ?: ""))
-        var sql = "SELECT * FROM [$tableName]$whereSQL"
+        var sql = "SELECT * FROM [$tableName] $whereSQL"
         if (DBCache.checkStopFlag()) {
             sql = "SELECT interrupted=1"
         }

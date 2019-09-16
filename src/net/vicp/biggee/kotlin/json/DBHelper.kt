@@ -5,9 +5,9 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import net.vicp.biggee.kotlin.db.JsonHelper
 
-object DBHelper {
+class DBHelper(val jsonHelper: JsonHelper) {
     fun getLatestJsonArrayFromDB(tableName: String, vararg keys: String): JsonArray {
-        val jsonArray = JsonHelper.getJsonArray(tableName)
+        val jsonArray = jsonHelper.getJsonArray(tableName)
         val returnArray = getLatestJsonArray(jsonArray, *keys)
         DBCache.collectCache(returnArray.toString(), tableName, *keys)
         return returnArray
